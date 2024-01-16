@@ -1,10 +1,10 @@
 import React from 'react';
 import type {PropsWithChildren} from 'react';
-import {PaperProvider, Button} from 'react-native-paper';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
+import {PaperProvider, Button, TextInput} from 'react-native-paper';
+
 import {
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,12 +13,8 @@ import {
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+/*
+Left this component if needed for example for building our own
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -50,11 +46,28 @@ function Section({children, title}: SectionProps): React.JSX.Element {
   );
 }
 
+sectionContainer: {
+  marginTop: 32,
+  paddingHorizontal: 24,
+},
+sectionTitle: {
+  fontSize: 24,
+  fontWeight: '600',
+},
+sectionDescription: {
+  marginTop: 8,
+  fontSize: 18,
+  fontWeight: '400',
+},
+*/
+
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
 
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    backgroundColor: '#CBF8FA',
   };
 
   return (
@@ -64,17 +77,32 @@ function App(): React.JSX.Element {
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={backgroundStyle.backgroundColor}
         />
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={backgroundStyle}>
-          <Header />
-          <View
-            style={{
-              backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            }}></View>
-          <Button mode="contained" onPress={() => console.log('Pressed')}>
-            Press me
-          </Button>
+
+        <Text style={styles.header}>Title</Text>
+        <ScrollView>
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              label="Email"
+              mode="outlined"
+              value={email}
+              onChangeText={text => setEmail(text)}
+            />
+            <TextInput
+              style={styles.input}
+              label="Password"
+              mode="outlined"
+              value={password}
+              onChangeText={text => setPassword(text)}
+            />
+            <Button
+              style={styles.button}
+              labelStyle={styles.buttonText}
+              mode="contained"
+              onPress={() => console.log('Pressed')}>
+              Log In
+            </Button>
+          </View>
         </ScrollView>
       </PaperProvider>
     </SafeAreaProvider>
@@ -82,21 +110,27 @@ function App(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 20,
   },
-  sectionTitle: {
-    fontSize: 24,
+  header: {
+    fontSize: 80,
+    padding: 50,
+    alignSelf: 'center',
     fontWeight: '600',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  button: {
+    width: '80%',
+    padding: 5,
   },
-  highlight: {
-    fontWeight: '700',
+  input: {
+    width: '80%',
+  },
+  buttonText: {
+    fontSize: 18,
   },
 });
 
