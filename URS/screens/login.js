@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {PaperProvider, Button, TextInput} from 'react-native-paper';
@@ -13,39 +13,39 @@ import {
 } from 'react-native';
 
 export default function Login({navigation}) {
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   return (
     <View style={styles.container}>
       <SafeAreaProvider>
-      <PaperProvider>
-        <Text style={styles.header}>User login</Text>
-        <ScrollView>
-          <View style={styles.form}>
-            <TextInput
-              style={styles.input}
-              label="Email"
-              mode="outlined"
-              value={email}
-              onChangeText={text => setEmail(text)}
-            />
-            <TextInput
-              style={styles.input}
-              label="Password"
-              mode="outlined"
-              value={password}
-              onChangeText={text => setPassword(text)}
-            />
-            <Button
-              style={styles.button}
-              labelStyle={styles.buttonText}
-              mode="contained"
-              onPress={() => navigation.navigate('StudentCheck')}>
-              Log In
-            </Button>
-          </View>
-        </ScrollView>
-      </PaperProvider>
+        <PaperProvider>
+          <Text style={styles.header}>User login</Text>
+          <ScrollView>
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                label="Email"
+                mode="outlined"
+                value={email}
+                onChangeText={text => setEmail(text)}
+              />
+              <TextInput
+                style={styles.input}
+                label="Password"
+                mode="outlined"
+                value={password}
+                onChangeText={text => setPassword(text)}
+              />
+              <Button
+                style={styles.button}
+                labelStyle={styles.buttonText}
+                mode="contained"
+                onPress={() => navigation.navigate('StudentCheck')}>
+                Log In
+              </Button>
+            </View>
+          </ScrollView>
+        </PaperProvider>
       </SafeAreaProvider>
     </View>
   );
@@ -54,9 +54,9 @@ export default function Login({navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#CBF8FA",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#CBF8FA',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingTop: 100,
   },
   header: {
