@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 
-export default function Login() {
+export default function Login({navigation}) {
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
   return (
@@ -40,7 +40,7 @@ export default function Login() {
               style={styles.button}
               labelStyle={styles.buttonText}
               mode="contained"
-              onPress={() => console.log('Pressed')}>
+              onPress={() => navigation.navigate('StudentCheck')}>
               Log In
             </Button>
           </View>

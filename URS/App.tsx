@@ -1,5 +1,23 @@
 import React from 'react';
-import Login from './screens/login';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import HomeScreen from './screens/login';
+import StudentCheckMeScreen from './screens/studentCheckMe';
+
+const Stack = createNativeStackNavigator();
+
+function App(): React.JSX.Element {
+  return (
+    <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home">
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="StudentCheck" component={StudentCheckMeScreen} />
+        </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+export default App;
 
 /*
 Left this component if needed for example for building our own
@@ -48,11 +66,3 @@ sectionDescription: {
   fontWeight: '400',
 },
 */
-
-function App(): React.JSX.Element {
-  return (
-        <Login />
-  );
-}
-
-export default App;
