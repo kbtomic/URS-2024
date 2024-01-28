@@ -38,12 +38,23 @@ const SECONDS_TO_SCAN_FOR = 3;
 const SERVICE_UUIDS: string[] = ['67136e01-58db-f39b-3446-fdde58c0813a'];
 const ALLOW_DUPLICATES = false;
 const CHARACTERISTIC_UUID: string = '4605cd12-57db-4127-b286-f09bacacfb0f';
+const API_URL: string = 'http://162.19.246.36:5000/';
 
-interface SessionProfessorData {
-  professorId: string;
-  subjectId: string;
-  startTime: string;
-  endTime: string;
+interface SessionData {
+  name: string;
+  start_date: string;
+}
+
+interface LectureData {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: null | string;
+  user_id: number;
+  class_id: string;
+  createdAt: string;
+  updatedAt: string;
+  salt: string;
 }
 
 export default function StudentCheckMe() {
@@ -51,25 +62,33 @@ export default function StudentCheckMe() {
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral['id'], Peripheral>(),
   );
-  const [esp32ID, setEsp32ID] = useState('');
-  const [hashFromServer, setHashFromServer] = useState('');
-  const [professorSessionData, setProfessorSessionData] =
-    useState<SessionProfessorData>({
-      professorId: '',
-      subjectId: '',
-      startTime: '',
-      endTime: '',
-    });
+  const [classId, setClassId] = useState('');
+  const [sessionData, setSessionData] = useState<SessionData>({
+    name: '',
+    start_date: '',
+  });
+
+  const [lectureData, setLectureData] = useState<LectureData>({
+    id: 0,
+    name: '',
+    start_date: '',
+    end_date: null,
+    user_id: 0,
+    class_id: '',
+    createdAt: '',
+    updatedAt: '',
+    salt: '',
+  });
 
   const startScan = () => {
+    /*TEMPORARY SETTING OF DATA FOR TESTING */
+    setClassId('B420');
+    setSessionData({
+      name: 'Ugradbeni racunalni sustavi',
+      start_date: '2024-01-28T21:53:13.606Z',
+    });
+
     if (!isScanning) {
-      setProfessorSessionData({
-        professorId: '123',
-        subjectId: '456',
-        startTime: '2024-01-28T10:00:00',
-        endTime: '2024-01-28T12:00:00',
-      });
-      // reset found peripherals before scan
       setPeripherals(new Map<Peripheral['id'], Peripheral>());
 
       try {
@@ -79,6 +98,7 @@ export default function StudentCheckMe() {
           matchMode: BleScanMatchMode.Sticky,
           scanMode: BleScanMode.LowLatency,
           callbackType: BleScanCallbackType.AllMatches,
+          exactAdvertisingName: ['Nordic_LLPM'], //change name to device if needed
         })
           .then(() => {
             console.debug('[startScan] scan promise returned successfully.');
@@ -127,29 +147,38 @@ export default function StudentCheckMe() {
       data.service === SERVICE_UUIDS[0] &&
       data.characteristic === CHARACTERISTIC_UUID
     ) {
-      const esp32IDresponse: number[] = data.value;
-      const esp32IDString = Buffer.from(esp32IDresponse).toString('utf-8');
-      setEsp32ID(esp32IDString);
-      //sendSessionDataToBackend(esp32ID, professorSessionData);
+      const esp32response: number[] = data.value;
+      const esp32classID = Buffer.from(esp32response).toString('utf-8');
+      setClassId(esp32classID);
     }
   };
 
-  const sendSessionDataToBackend = async (
-    esp32ID: string,
-    sessionData: SessionProfessorData,
-  ) => {
+  useEffect(() => {
+    if (classId !== '') {
+      sendStartSessionDataToBackend();
+    }
+  }, [classId]);
+
+  const sendStartSessionDataToBackend = async () => {
     try {
       // Example of the data you want to send
       const requestData = {
-        esp32ID: esp32ID,
-        professorId: sessionData.professorId,
-        startTime: sessionData.startTime,
-        endTime: sessionData.endTime,
-        subjectId: sessionData.subjectId,
+        name: sessionData.name,
+        start_date: sessionData.start_date,
+        class_id: classId,
       };
 
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer YourAccessToken', // Include your authorization token if needed
+      };
+
+      const api_url: string = `${API_URL}/api/v1/lectures/create`;
       // Make an Axios POST request to your backend
-      const response = await axios.post('backendEndpoint', requestData);
+      const response = await axios.post(api_url, requestData, {
+        headers: headers,
+      });
+      setLectureData(response.data);
 
       // Handle the response from the backend if needed
       console.log('Backend response:', response.data);
@@ -365,62 +394,61 @@ export default function StudentCheckMe() {
     }
   };
 
-  const convertSessionProfessorData = (): number[] => {
-    const data = professorSessionData;
+  // const convertSessionProfessorData = (): number[] => {
 
-    // Convert string values to UTF-8 encoded byte arrays
-    const professorIdBytes = Buffer.from(data.professorId, 'utf-8');
-    const subjectIdBytes = Buffer.from(data.subjectId, 'utf-8');
-    const startTimeBytes = Buffer.from(data.startTime, 'utf-8');
-    const endTimeBytes = Buffer.from(data.endTime, 'utf-8');
+  //   // Convert string values to UTF-8 encoded byte arrays
+  //   const professorIdBytes = Buffer.from(data.professorId, 'utf-8');
+  //   const subjectIdBytes = Buffer.from(data.subjectId, 'utf-8');
+  //   const startTimeBytes = Buffer.from(data.startTime, 'utf-8');
+  //   const endTimeBytes = Buffer.from(data.endTime, 'utf-8');
 
-    // Concatenate all byte arrays
-    const byteArray = [
-      ...Array.from(professorIdBytes),
-      ...Array.from(subjectIdBytes),
-      ...Array.from(startTimeBytes),
-      ...Array.from(endTimeBytes),
-    ];
+  //   // Concatenate all byte arrays
+  //   const byteArray = [
+  //     ...Array.from(professorIdBytes),
+  //     ...Array.from(subjectIdBytes),
+  //     ...Array.from(startTimeBytes),
+  //     ...Array.from(endTimeBytes),
+  //   ];
 
-    return byteArray;
-  };
+  //   return byteArray;
+  // };
 
-  const sendSessionProfessorData = async (peripheralId: string) => {
-    try {
-      retrieveConnected(); // used so the peripheral state only has connected periblerals
+  // const sendSessionProfessorData = async (peripheralId: string) => {
+  //   try {
+  //     retrieveConnected(); // used so the peripheral state only has connected periblerals
 
-      const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
-      const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
+  //     const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
+  //     const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
 
-      const encodedData: number[] = convertSessionProfessorData(); // Implement a function to encode your data
+  //     const encodedData: number[] = convertSessionProfessorData(); // Implement a function to encode your data
 
-      await BleManager.writeWithoutResponse(
-        peripheralId,
-        serviceUUID,
-        characteristicUUID,
-        encodedData,
-      );
+  //     await BleManager.writeWithoutResponse(
+  //       peripheralId,
+  //       serviceUUID,
+  //       characteristicUUID,
+  //       encodedData,
+  //     );
 
-      console.log(
-        `Writing data to peripheral ${peripheralId} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
-      );
-      console.debug('Data sent successfully.');
-    } catch (error) {
-      console.error('Error sending data:', error);
-    }
-  };
+  //     console.log(
+  //       `Writing data to peripheral ${peripheralId} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
+  //     );
+  //     console.debug('Data sent successfully.');
+  //   } catch (error) {
+  //     console.error('Error sending data:', error);
+  //   }
+  // };
 
-  const startExchangeProcess = async (peripheral: Peripheral) => {
-    await connectPeripheral(peripheral);
-    sendSessionProfessorData(peripheral.id);
-  };
+  // const startExchangeProcess = async (peripheral: Peripheral) => {
+  //   await connectPeripheral(peripheral);
+  //   sendSessionProfessorData(peripheral.id);
+  // };
 
   const renderItem = ({item}: {item: Peripheral}) => {
     const backgroundColor = item.connected ? '#069400' : '#fffff';
     return (
       <TouchableHighlight
         underlayColor="#0082FC"
-        onPress={() => startExchangeProcess(item)}>
+        onPress={() => connectPeripheral(item)}>
         <View style={[styles.row, {backgroundColor}]}>
           <Text style={styles.peripheralName}>
             {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
