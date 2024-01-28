@@ -1,0 +1,15 @@
+{
+    "users": [
+      {
+        "email": "ktomic01@fesb.hr",
+        "password": "12345678",
+        "role": "student"
+      },
+      {
+        "email": "gotovac@fesb.hr",
+        "password": "12345678",
+        "role": "professor"
+      },
+    ]
+  }
+  
