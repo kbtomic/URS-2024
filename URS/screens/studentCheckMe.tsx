@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Button} from 'react-native-paper';
+import {Buffer} from '@craftzdog/react-native-buffer';
 
 import {
   View,
@@ -21,6 +22,7 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from 'react-native-ble-manager';
+import axios from 'axios';
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
@@ -33,17 +35,40 @@ declare module 'react-native-ble-manager' {
 }
 
 const SECONDS_TO_SCAN_FOR = 3;
-const SERVICE_UUIDS: string[] = [];
-const ALLOW_DUPLICATES = true;
+const SERVICE_UUIDS: string[] = ['67136e01-58db-f39b-3446-fdde58c0813a'];
+const ALLOW_DUPLICATES = false;
+const CHARACTERISTIC_UUID: string = '4605cd12-57db-4127-b286-f09bacacfb0f';
+
+interface SessionProfessorData {
+  professorId: string;
+  subjectId: string;
+  startTime: string;
+  endTime: string;
+}
 
 export default function StudentCheckMe() {
   const [isScanning, setIsScanning] = useState(false);
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral['id'], Peripheral>(),
   );
+  const [esp32ID, setEsp32ID] = useState('');
+  const [hashFromServer, setHashFromServer] = useState('');
+  const [professorSessionData, setProfessorSessionData] =
+    useState<SessionProfessorData>({
+      professorId: '',
+      subjectId: '',
+      startTime: '',
+      endTime: '',
+    });
 
   const startScan = () => {
     if (!isScanning) {
+      setProfessorSessionData({
+        professorId: '123',
+        subjectId: '456',
+        startTime: '2024-01-28T10:00:00',
+        endTime: '2024-01-28T12:00:00',
+      });
       // reset found peripherals before scan
       setPeripherals(new Map<Peripheral['id'], Peripheral>());
 
@@ -98,6 +123,39 @@ export default function StudentCheckMe() {
     console.debug(
       `[handleUpdateValueForCharacteristic] received data from '${data.peripheral}' with characteristic='${data.characteristic}' and value='${data.value}'`,
     );
+    if (
+      data.service === SERVICE_UUIDS[0] &&
+      data.characteristic === CHARACTERISTIC_UUID
+    ) {
+      const esp32IDresponse: number[] = data.value;
+      const esp32IDString = Buffer.from(esp32IDresponse).toString('utf-8');
+      setEsp32ID(esp32IDString);
+      //sendSessionDataToBackend(esp32ID, professorSessionData);
+    }
+  };
+
+  const sendSessionDataToBackend = async (
+    esp32ID: string,
+    sessionData: SessionProfessorData,
+  ) => {
+    try {
+      // Example of the data you want to send
+      const requestData = {
+        esp32ID: esp32ID,
+        professorId: sessionData.professorId,
+        startTime: sessionData.startTime,
+        endTime: sessionData.endTime,
+        subjectId: sessionData.subjectId,
+      };
+
+      // Make an Axios POST request to your backend
+      const response = await axios.post('backendEndpoint', requestData);
+
+      // Handle the response from the backend if needed
+      console.log('Backend response:', response.data);
+    } catch (error) {
+      console.error('Error sending data to backend:', error);
+    }
   };
 
   const handleDiscoverPeripheral = (peripheral: Peripheral) => {
@@ -108,21 +166,6 @@ export default function StudentCheckMe() {
     setPeripherals(map => {
       return new Map(map.set(peripheral.id, peripheral));
     });
-  };
-
-  const togglePeripheralConnection = async (peripheral: Peripheral) => {
-    if (peripheral && peripheral.connected) {
-      try {
-        await BleManager.disconnect(peripheral.id);
-      } catch (error) {
-        console.error(
-          `[togglePeripheralConnection][${peripheral.id}] error when trying to disconnect device.`,
-          error,
-        );
-      }
-    } else {
-      await connectPeripheral(peripheral);
-    }
   };
 
   const retrieveConnected = async () => {
@@ -138,17 +181,12 @@ export default function StudentCheckMe() {
         connectedPeripherals,
       );
 
-      for (var i = 0; i < connectedPeripherals.length; i++) {
-        var peripheral = connectedPeripherals[i];
-        setPeripherals(map => {
-          let p = map.get(peripheral.id);
-          if (p) {
-            p.connected = true;
-            return new Map(map.set(p.id, p));
-          }
-          return map;
-        });
-      }
+      // Create a new Map instance with connected peripherals
+      const updatedPeripheralsMap = new Map(
+        connectedPeripherals.map(peripheral => [peripheral.id, peripheral]),
+      );
+
+      setPeripherals(updatedPeripheralsMap);
     } catch (error) {
       console.error(
         '[retrieveConnected] unable to retrieve connected peripherals.',
@@ -246,7 +284,7 @@ export default function StudentCheckMe() {
 
   useEffect(() => {
     try {
-      BleManager.start({showAlert: false})
+      BleManager.start({showAlert: true})
         .then(() => console.debug('BleManager started.'))
         .catch((error: any) =>
           console.error('BeManager could not be started.', error),
@@ -327,19 +365,68 @@ export default function StudentCheckMe() {
     }
   };
 
+  const convertSessionProfessorData = (): number[] => {
+    const data = professorSessionData;
+
+    // Convert string values to UTF-8 encoded byte arrays
+    const professorIdBytes = Buffer.from(data.professorId, 'utf-8');
+    const subjectIdBytes = Buffer.from(data.subjectId, 'utf-8');
+    const startTimeBytes = Buffer.from(data.startTime, 'utf-8');
+    const endTimeBytes = Buffer.from(data.endTime, 'utf-8');
+
+    // Concatenate all byte arrays
+    const byteArray = [
+      ...Array.from(professorIdBytes),
+      ...Array.from(subjectIdBytes),
+      ...Array.from(startTimeBytes),
+      ...Array.from(endTimeBytes),
+    ];
+
+    return byteArray;
+  };
+
+  const sendSessionProfessorData = async (peripheralId: string) => {
+    try {
+      retrieveConnected(); // used so the peripheral state only has connected periblerals
+
+      const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
+      const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
+
+      const encodedData: number[] = convertSessionProfessorData(); // Implement a function to encode your data
+
+      await BleManager.writeWithoutResponse(
+        peripheralId,
+        serviceUUID,
+        characteristicUUID,
+        encodedData,
+      );
+
+      console.log(
+        `Writing data to peripheral ${peripheralId} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
+      );
+      console.debug('Data sent successfully.');
+    } catch (error) {
+      console.error('Error sending data:', error);
+    }
+  };
+
+  const startExchangeProcess = async (peripheral: Peripheral) => {
+    await connectPeripheral(peripheral);
+    sendSessionProfessorData(peripheral.id);
+  };
+
   const renderItem = ({item}: {item: Peripheral}) => {
     const backgroundColor = item.connected ? '#069400' : '#fffff';
     return (
       <TouchableHighlight
         underlayColor="#0082FC"
-        onPress={() => togglePeripheralConnection(item)}>
+        onPress={() => startExchangeProcess(item)}>
         <View style={[styles.row, {backgroundColor}]}>
           <Text style={styles.peripheralName}>
             {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
             {item.name} - {item?.advertising?.localName}
             {item.connecting && ' - Connecting...'}
           </Text>
-          <Text style={styles.rssi}>RSSI: {item.rssi}</Text>
           <Text style={styles.peripheralId}>{item.id}</Text>
         </View>
       </TouchableHighlight>
