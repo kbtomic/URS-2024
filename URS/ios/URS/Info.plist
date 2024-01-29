@@ -26,6 +26,10 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
 			<key>162.19.246.36</key>
@@ -36,9 +40,7 @@
 				<true/>
 			</dict>
 		</dict>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>	
+	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>We need Bluetooth access for BLE functionality</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>

@@ -1,5 +1,5 @@
-import React, {useState, useContext, useEffect} from 'react';
-import {AuthContext} from '../context/AuthContext';
+import React, {useState, useContext, useEffect} from "react";
+import {AuthContext} from "../context/AuthContext";
 import {
   View,
   Text,
@@ -12,11 +12,11 @@ import {
   TouchableHighlight,
   Platform,
   PermissionsAndroid,
-} from 'react-native';
-import DatePicker from 'react-native-date-picker';
-import DropDown from 'react-native-paper-dropdown';
-import {SafeAreaProvider, SafeAreaView} from 'react-native-safe-area-context';
-import {PaperProvider, TextInput, Button} from 'react-native-paper';
+} from "react-native";
+import DatePicker from "react-native-date-picker";
+import DropDown from "react-native-paper-dropdown";
+import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
+import {PaperProvider, TextInput, Button} from "react-native-paper";
 
 import BleManager, {
   BleDisconnectPeripheralEvent,
@@ -25,14 +25,14 @@ import BleManager, {
   BleScanMatchMode,
   BleScanMode,
   Peripheral,
-} from 'react-native-ble-manager';
-import axios from 'axios';
-import {tokens} from 'react-native-paper/lib/typescript/styles/themes/v3/tokens';
+} from "react-native-ble-manager";
+import axios from "axios";
+import {tokens} from "react-native-paper/lib/typescript/styles/themes/v3/tokens";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
-declare module 'react-native-ble-manager' {
+declare module "react-native-ble-manager" {
   // enrich local contract with custom state properties needed by App.tsx
   interface Peripheral {
     connected?: boolean;
@@ -41,10 +41,10 @@ declare module 'react-native-ble-manager' {
 }
 
 const SECONDS_TO_SCAN_FOR = 3;
-const SERVICE_UUIDS: string[] = ['67136e01-58db-f39b-3446-fdde58c0813a'];
+const SERVICE_UUIDS: string[] = ["67136e01-58db-f39b-3446-fdde58c0813a"];
 const ALLOW_DUPLICATES = false;
-const CHARACTERISTIC_UUID: string = '4605cd12-57db-4127-b286-f09bacacfb0f';
-const API_URL: string = 'http://162.19.246.36:5000';
+const CHARACTERISTIC_UUID: string = "4605cd12-57db-4127-b286-f09bacacfb0f";
+const API_URL: string = "http://162.19.246.36:5000";
 
 interface SessionData {
   name: string;
@@ -68,28 +68,28 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   const [isScanning, setIsScanning] = useState(false);
   const [peripherals, setPeripherals] = useState(
-    new Map<Peripheral['id'], Peripheral>(),
+    new Map<Peripheral["id"], Peripheral>(),
   );
-  const [classId, setClassId] = useState('');
+  const [classId, setClassId] = useState("");
 
   const [sessionData, setSessionData] = useState<SessionData>({
-    name: '',
-    start_date: '',
+    name: "",
+    start_date: "",
   });
 
   const [lectureData, setLectureData] = useState<LectureData>({
-    id: 0,
-    name: '',
-    start_date: '',
+    id: -1,
+    name: "",
+    start_date: "",
     end_date: null,
     user_id: 0,
-    class_id: '',
-    createdAt: '',
-    updatedAt: '',
-    salt: '',
+    class_id: "",
+    createdAt: "",
+    updatedAt: "",
+    salt: "",
   });
 
-  const [subject, setSubject] = useState('');
+  const [subject, setSubject] = useState("");
   const [showDropDown, setShowDropDown] = useState(false);
   const [open, setOpen] = useState(false);
   const [open2, setOpen2] = useState(false);
@@ -100,16 +100,16 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   const subjectList = [
     {
-      label: 'ADR',
-      value: 'adr',
+      label: "ADR",
+      value: "adr",
     },
     {
-      label: 'URS',
-      value: 'urs',
+      label: "URS",
+      value: "urs",
     },
     {
-      label: 'OS',
-      value: 'os',
+      label: "OS",
+      value: "os",
     },
   ];
 
@@ -120,7 +120,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
     if (endTime <= startTime) {
       // Alert user and prevent creating schedule
-      Alert.alert('Incorrect input', 'End time must be later than start time');
+      Alert.alert("Incorrect input", "End time must be later than start time");
       return;
     }
 
@@ -130,32 +130,32 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     });
 
     if (!isScanning) {
-      setPeripherals(new Map<Peripheral['id'], Peripheral>());
+      setPeripherals(new Map<Peripheral["id"], Peripheral>());
 
       try {
-        console.debug('[startScan] starting scan...');
+        console.debug("[startScan] starting scan...");
         setIsScanning(true);
         BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN_FOR, ALLOW_DUPLICATES, {
           matchMode: BleScanMatchMode.Sticky,
           scanMode: BleScanMode.LowLatency,
           callbackType: BleScanCallbackType.AllMatches,
-          exactAdvertisingName: ['Nordic_LLPM'], //change name to device if needed
+          exactAdvertisingName: ["Nordic_LLPM"], //change name to device if needed
         })
           .then(() => {
-            console.debug('[startScan] scan promise returned successfully.');
+            console.debug("[startScan] scan promise returned successfully.");
           })
           .catch((err: any) => {
-            console.error('[startScan] ble scan returned in error', err);
+            console.error("[startScan] ble scan returned in error", err);
           });
       } catch (error) {
-        console.error('[startScan] ble scan error thrown', error);
+        console.error("[startScan] ble scan error thrown", error);
       }
     }
   };
 
   const handleStopScan = () => {
     setIsScanning(false);
-    console.debug('[handleStopScan] scan is stopped.');
+    console.debug("[handleStopScan] scan is stopped.");
   };
 
   const handleDisconnectedPeripheral = (
@@ -189,83 +189,95 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       data.characteristic === CHARACTERISTIC_UUID
     ) {
       const esp32response: number[] = data.value;
-      const esp32classID = Buffer.from(esp32response).toString('utf-8');
+      const esp32classID = Buffer.from(esp32response).toString("utf-8");
       setClassId(esp32classID);
     }
   };
 
   useEffect(() => {
-    if (classId !== '') {
-      sendStartSessionDataToBackend();
+    if (classId !== "") {
+      sendStartSessionDataToBackend()
+        .then(data => {
+          // Handle success if needed
+          console.log("Success:", data);
+          console.log("STATe" + lectureData.name);
+        })
+        .catch(error => {
+          // Handle error if needed
+          console.error("Error:", error);
+        });
     }
   }, [classId]);
 
   useEffect(() => {
-    if (lectureData.id !== 0) {
-      console.debug('Lecture data received');
+    if (lectureData.id !== -1) {
+      //send received data to esp
     }
   }, [lectureData]);
 
   function formatDateTime(date: Date): string {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
 
     const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
 
     return formattedDate;
   }
 
-  const sendStartSessionDataToBackend = async () => {
-    try {
-      // Example of the data you want to send
-      const requestData = {
-        name: sessionData.name,
-        start_date: sessionData.start_date,
-        class_id: classId,
-      };
+  const sendStartSessionDataToBackend = () => {
+    // Example of the data you want to send
+    const requestData = {
+      name: sessionData.name,
+      start_date: sessionData.start_date,
+      class_id: classId,
+    };
 
-      console.debug(
-        `[Axios request data] Name: ${requestData.name}, Start: ${requestData.start_date}̆, ClassID ${requestData.class_id}`,
-      );
-      console.debug(`[Token) ${userInfo.token.token}`);
+    const headers = {
+      "Content-Type": "application/json",
+      "x-auth-token": userInfo.token.token,
+    };
 
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: userInfo.token.token, // Include your authorization token if needed
-      };
+    const api_url = `${API_URL}/api/v1/lectures/create`;
 
-      const requestData2 = {
-        name: 'test',
-        start_date: '2024-01-29T14:42:24.276Z',
-        class_id: 'test',
-      };
-
-      const api_url: string = `${API_URL}/api/v1/lectures/create`;
-      // Make an Axios POST request to your backend
-      const response = await axios.post(api_url, requestData2, {
-        headers: headers,
+    // Use Promise for axios
+    return axios
+      .post(api_url, requestData, {headers: headers})
+      .then(response => {
+        setLectureData(response.data);
+        console.debug(
+          "Successful send of data to backend, Backend response:",
+          response.data,
+        );
+        setLectureData(response.data);
+        return response.data; // You can return the data if needed
+      })
+      .then(null, error => {
+        // Handle errors and still access the response
+        console.error("Error sending data to backend:", error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error("Server responded with status:", error.response.status);
+          console.error("Response data:", error.response.data);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("No response received from the server");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error("Error setting up the request:", error.message);
+        }
+        throw error; // Propagate the error if needed
       });
-      setLectureData(response.data);
-
-      // Handle the response from the backend if needed
-      console.log(
-        'Succesufl send of data to backend, Backend response:',
-        response.data,
-      );
-    } catch (error) {
-      console.error('Error sending data to backend:', error);
-    }
   };
 
   const handleDiscoverPeripheral = (peripheral: Peripheral) => {
-    console.debug('[handleDiscoverPeripheral] new BLE peripheral=', peripheral);
+    console.debug("[handleDiscoverPeripheral] new BLE peripheral=", peripheral);
     if (!peripheral.name) {
-      peripheral.name = 'NO NAME';
+      peripheral.name = "NO NAME";
     }
     setPeripherals(map => {
       return new Map(map.set(peripheral.id, peripheral));
@@ -276,12 +288,12 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     try {
       const connectedPeripherals = await BleManager.getConnectedPeripherals();
       if (connectedPeripherals.length === 0) {
-        console.warn('[retrieveConnected] No connected peripherals found.');
+        console.warn("[retrieveConnected] No connected peripherals found.");
         return;
       }
 
       console.debug(
-        '[retrieveConnected] connectedPeripherals',
+        "[retrieveConnected] connectedPeripherals",
         connectedPeripherals,
       );
 
@@ -293,7 +305,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       setPeripherals(updatedPeripheralsMap);
     } catch (error) {
       console.error(
-        '[retrieveConnected] unable to retrieve connected peripherals.',
+        "[retrieveConnected] unable to retrieve connected peripherals.",
         error,
       );
     }
@@ -374,7 +386,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           return map;
         });
 
-        setClassId('B420'); //REMOVE THIS LATER
+        setClassId("e3617a9f-8bab-4714-8c27-c4e9e9555d10"); //REMOVE THIS LATER
       }
     } catch (error) {
       console.error(
@@ -391,36 +403,36 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   useEffect(() => {
     try {
       BleManager.start({showAlert: true})
-        .then(() => console.debug('BleManager started.'))
+        .then(() => console.debug("BleManager started."))
         .catch((error: any) =>
-          console.error('BeManager could not be started.', error),
+          console.error("BeManager could not be started.", error),
         );
     } catch (error) {
-      console.error('unexpected error starting BleManager.', error);
+      console.error("unexpected error starting BleManager.", error);
       return;
     }
     const listeners = [
       bleManagerEmitter.addListener(
-        'BleManagerDiscoverPeripheral',
+        "BleManagerDiscoverPeripheral",
         handleDiscoverPeripheral,
       ),
-      bleManagerEmitter.addListener('BleManagerStopScan', handleStopScan),
+      bleManagerEmitter.addListener("BleManagerStopScan", handleStopScan),
       bleManagerEmitter.addListener(
-        'BleManagerDisconnectPeripheral',
+        "BleManagerDisconnectPeripheral",
         handleDisconnectedPeripheral,
       ),
       bleManagerEmitter.addListener(
-        'BleManagerDidUpdateValueForCharacteristic',
+        "BleManagerDidUpdateValueForCharacteristic",
         handleUpdateValueForCharacteristic,
       ),
       bleManagerEmitter.addListener(
-        'BleManagerConnectPeripheral',
+        "BleManagerConnectPeripheral",
         handleConnectPeripheral,
       ),
     ];
     handleAndroidPermissions();
     return () => {
-      console.debug('[app] main component unmounting. Removing listeners...');
+      console.debug("[app] main component unmounting. Removing listeners...");
       for (const listener of listeners) {
         listener.remove();
       }
@@ -429,28 +441,28 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   }, []);
 
   const handleAndroidPermissions = () => {
-    if (Platform.OS === 'android' && Platform.Version >= 31) {
+    if (Platform.OS === "android" && Platform.Version >= 31) {
       PermissionsAndroid.requestMultiple([
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
         PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
       ]).then(result => {
         if (result) {
           console.debug(
-            '[handleAndroidPermissions] User accepts runtime permissions android 12+',
+            "[handleAndroidPermissions] User accepts runtime permissions android 12+",
           );
         } else {
           console.error(
-            '[handleAndroidPermissions] User refuses runtime permissions android 12+',
+            "[handleAndroidPermissions] User refuses runtime permissions android 12+",
           );
         }
       });
-    } else if (Platform.OS === 'android' && Platform.Version >= 23) {
+    } else if (Platform.OS === "android" && Platform.Version >= 23) {
       PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
       ).then(checkResult => {
         if (checkResult) {
           console.debug(
-            '[handleAndroidPermissions] runtime permission Android <12 already OK',
+            "[handleAndroidPermissions] runtime permission Android <12 already OK",
           );
         } else {
           PermissionsAndroid.request(
@@ -458,11 +470,11 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           ).then(requestResult => {
             if (requestResult) {
               console.debug(
-                '[handleAndroidPermissions] User accepts runtime permission android <12',
+                "[handleAndroidPermissions] User accepts runtime permission android <12",
               );
             } else {
               console.error(
-                '[handleAndroidPermissions] User refuses runtime permission android <12',
+                "[handleAndroidPermissions] User refuses runtime permission android <12",
               );
             }
           });
@@ -472,7 +484,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   };
 
   const renderItem = ({item}: {item: Peripheral}) => {
-    const backgroundColor = item.connected ? '#069400' : '#fffff';
+    const backgroundColor = item.connected ? "#069400" : "#fffff";
     return (
       <TouchableHighlight
         underlayColor="#0082FC"
@@ -481,7 +493,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           <Text style={styles.peripheralName}>
             {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
             {item.name} - {item?.advertising?.localName}
-            {item.connecting && ' - Starting lecture...'}
+            {item.connecting && " - Starting lecture..."}
           </Text>
           <Text style={styles.peripheralId}>{item.id}</Text>
         </View>
@@ -497,8 +509,8 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
             <Text style={styles.header}>Hello, {userInfo.user.name}</Text>
 
             <DropDown
-              label={'Select subject'}
-              mode={'outlined'}
+              label={"Select subject"}
+              mode={"outlined"}
               visible={showDropDown}
               showDropDown={() => setShowDropDown(true)}
               onDismiss={() => setShowDropDown(false)}
@@ -529,7 +541,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 placeholder="Select start time"
                 value={`${startTime.toDateString()} ${startTime.toLocaleTimeString(
                   [],
-                  {hour: '2-digit', minute: '2-digit'},
+                  {hour: "2-digit", minute: "2-digit"},
                 )}`}
                 editable={false}
               />
@@ -557,7 +569,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 placeholder="Select end time"
                 value={`${endTime.toDateString()} ${endTime.toLocaleTimeString(
                   [],
-                  {hour: '2-digit', minute: '2-digit'},
+                  {hour: "2-digit", minute: "2-digit"},
                 )}`}
                 editable={false}
               />
@@ -600,38 +612,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   header: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 30,
   },
   createButton: {
     marginTop: 30,
     marginBottom: 30,
-    backgroundColor: 'green',
+    backgroundColor: "green",
   },
   logoutButton: {
     marginTop: 30,
     marginBottom: 30,
-    backgroundColor: 'red',
+    backgroundColor: "red",
   },
   buttonText: {},
 
   peripheralName: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     padding: 10,
   },
   rssi: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     padding: 2,
   },
   peripheralId: {
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     padding: 2,
     paddingBottom: 20,
   },
@@ -642,7 +654,7 @@ const styles = StyleSheet.create({
   },
   noPeripherals: {
     margin: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 
