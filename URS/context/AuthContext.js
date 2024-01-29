@@ -1,7 +1,7 @@
-import React, {createContext, useState} from 'react';
+import React, {createContext, useState} from "react";
 
-import axios from 'axios';
-import {BASE_URL} from '../config';
+import axios from "axios";
+import {API_KEY} from "@env";
 
 export const AuthContext = createContext();
 
@@ -12,7 +12,7 @@ export const AuthProvider = ({children}) => {
 
   const login = (email, password, navigation) => {
     axios
-      .post(BASE_URL + '/api/v1/users/login', {
+      .post(API_KEY + "/api/v1/users/login", {
         email: email,
         password: password,
       })
@@ -23,11 +23,11 @@ export const AuthProvider = ({children}) => {
         setUserToken(userInfo.token.token);
         setUserRole(userInfo.user.role);
 
-        if (userRole === 'PROFESSOR') navigation.navigate('ClassSchedule');
-        else if (userRole === 'STUDENT') navigation.navigate('StudentCheck');
+        if (userRole === "PROFESSOR") navigation.navigate("ClassSchedule");
+        else if (userRole === "STUDENT") navigation.navigate("StudentCheck");
       })
       .catch(err => {
-        alert('Invalid email or password');
+        alert("Invalid email or password");
       });
   };
 
@@ -35,7 +35,7 @@ export const AuthProvider = ({children}) => {
     setUserInfo(null);
     setUserToken(null);
     setUserRole(null);
-    navigation.navigate('Home');
+    navigation.navigate("Home");
   };
 
   return (
