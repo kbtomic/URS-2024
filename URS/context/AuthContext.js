@@ -1,7 +1,7 @@
 import React, {createContext, useState} from "react";
 
 import axios from "axios";
-import { BASE_URL } from "../config";
+import {API_KEY} from '@env';
 
 export const AuthContext = createContext();
 
@@ -11,7 +11,7 @@ export const AuthProvider = ({children}) => {
     const [userRole, setUserRole] = useState(null);
 
     const login = (email, password, navigation) => {
-        axios.post(BASE_URL + '/api/v1/users/login', {
+        axios.post(API_KEY + '/api/v1/users/login', {
             email: email,
             password: password,
         })
