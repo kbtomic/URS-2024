@@ -4,18 +4,22 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './screens/login';
 import StudentCheckMeScreen from './screens/studentCheckMe';
 import ClassScheduleScreen from './screens/classSchedule';
+import { AuthProvider } from './context/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
 function App(): React.JSX.Element {
+  
   return (
-    <NavigationContainer>
-        <Stack.Navigator initialRouteName="Home">
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="StudentCheck" component={StudentCheckMeScreen} />
-          <Stack.Screen name="ClassSchedule" component={ClassScheduleScreen} />
-        </Stack.Navigator>
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
+          <Stack.Navigator initialRouteName="Home">
+            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }}/>
+            <Stack.Screen name="StudentCheck" component={StudentCheckMeScreen} options={{ headerShown: false }}/>
+            <Stack.Screen name="ClassSchedule" component={ClassScheduleScreen} options={{ headerShown: false }}/>
+          </Stack.Navigator>
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
 

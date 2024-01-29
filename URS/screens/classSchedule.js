@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import DatePicker from 'react-native-date-picker'
 import DropDown from "react-native-paper-dropdown";
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider, TextInput, Button } from 'react-native-paper';
 
-const ScheduleScreen = () => {
+const ScheduleScreen = ({navigation}) => {
+  const { userInfo, logout } = useContext(AuthContext);
+
   const [subject, setSubject] = useState('');
   const [showDropDown, setShowDropDown] = useState(false);
   const [open, setOpen] = useState(false);
@@ -31,14 +34,21 @@ const ScheduleScreen = () => {
     },
   ];
 
+  const isButtonVisible = subject && startTime && endTime;
+
   const handleCreateSchedule = () => {
     // Implement the logic to save the schedule to your database or perform other actions.
+    if (endTime <= startTime) {
+      // Alert user and prevent creating schedule
+      alert('End time must be later than start time');
+      return;
+    }
+    
     console.log('Schedule created:', {
       subject,
       date,
       startTime,
       endTime,
-      classroom,
     });
   };
 
@@ -47,7 +57,7 @@ const ScheduleScreen = () => {
     <PaperProvider>
       <ScrollView style={styles.container}>
       <View>
-        <Text style={styles.header}>Create Class Schedule</Text>
+        <Text style={styles.header}>Hello, {userInfo.user.name}</Text>
 
         <DropDown
                 label={"Select subject"}
@@ -58,14 +68,6 @@ const ScheduleScreen = () => {
                 value={subject}
                 setValue={setSubject}
                 list={subjectList}
-        />
-
-        <TextInput
-          label="Classroom number"
-          placeholder="Enter classroom number"
-          value={classroom}
-          onChangeText={(text) => setClassroom(text)}
-          style={{ marginTop: 30 }}
         />
 
         <View style={{ marginTop: 30}} >
@@ -85,7 +87,6 @@ const ScheduleScreen = () => {
               }}
             />
         
-
             <TextInput
               label="Start time"
               placeholder="Select start time"
@@ -118,9 +119,20 @@ const ScheduleScreen = () => {
               editable={false}
             />
         </View>
-        <Button mode="contained" style={styles.createButton} onPress={handleCreateSchedule}>
+
+        {isButtonVisible ? <Button mode="contained" style={styles.createButton} onPress={handleCreateSchedule}>
             Create lecture
-        </Button>
+        </Button> : null}
+        
+
+        <Button
+              style={styles.logoutButton}
+              labelStyle={styles.buttonText}
+              mode="contained"
+              onPress={() => {logout(navigation)} }
+              >
+              LOGOUT
+            </Button>
 
       </View>
       </ScrollView>
@@ -144,6 +156,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 30,
     backgroundColor: 'green',
+  },
+  logoutButton: {
+    marginTop: 30,
+    marginBottom: 30,
+    backgroundColor: 'red',
   },
 });
 

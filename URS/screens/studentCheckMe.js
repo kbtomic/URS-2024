@@ -1,8 +1,11 @@
-import React from "react";
+import React, {useContext} from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Button } from "react-native-paper";
+import { AuthContext } from "../context/AuthContext";
 
-export default function StudentCheckMe() {
+export default function StudentCheckMe({navigation}) {
+    const {logout} = useContext(AuthContext);
+
     return (
         <View style={styles.container}>
             <Button
@@ -10,6 +13,14 @@ export default function StudentCheckMe() {
               labelStyle={styles.buttonText}
               mode="contained">
               Check me!
+            </Button>
+            <Button
+              style={styles.logoutButton}
+              labelStyle={styles.buttonText}
+              mode="contained"
+              onPress={() => {logout(navigation)} }
+              >
+              LOGOUT
             </Button>
         </View>
     );
@@ -33,5 +44,14 @@ const styles = StyleSheet.create({
     buttonText: {
         color: "#FFFFFF",
         fontSize: 20,
+    },
+    logoutButton: {
+        width: 200,
+        height: 50,
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 15,
+        margin: 10,
+        backgroundColor: 'red',
     },
 });

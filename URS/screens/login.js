@@ -1,33 +1,19 @@
-import React from "react";
+import React, {useContext, useState} from "react";
+import {AuthContext} from '../context/AuthContext';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-
 import {PaperProvider, TextInput, Button} from 'react-native-paper';
-
 import {
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
 export default function Login({navigation}) {
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
-    const usersData = require('./users.json');
-    const users = usersData.users;
-    const handleLogin = (inputEmail, inputPassword) => {
-        const user = users.find(u => u.email === inputEmail && u.password === inputPassword);
-      
-        if (user) {
-          // Successful login
-          navigation.navigate('StudentCheck')
-        } else {
-          // Invalid credentials
-          console.log('Invalid credentials');
-        }
-      };
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const {login} = useContext(AuthContext);
       
   return (
     <View style={styles.container}>
@@ -51,7 +37,7 @@ export default function Login({navigation}) {
               onChangeText={text => setPassword(text)}
               secureTextEntry={true}
             />
-            <Button mode="contained" style={styles.button} onPress={() => handleLogin(email, password)}>
+            <Button mode="contained" style={styles.button} onPress={() => {login(email, password, navigation)}}>
               LOG IN
             </Button>
             
