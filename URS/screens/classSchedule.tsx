@@ -215,13 +215,11 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     if (lectureData.id !== -1) {
       //send received data to esp
       const byteArray: number[] = convertLectureDataForESP();
+      sendSessionProfessorData(byteArray);
     }
   }, [lectureData]);
 
-  const sendSessionProfessorData = async (
-    peripheralId: string,
-    dataToSend: number[],
-  ) => {
+  const sendSessionProfessorData = async (dataToSend: number[]) => {
     try {
       retrieveConnected(); // used so the peripheral state only has connected periblerals
 
@@ -229,6 +227,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
 
       const encodedData: number[] = dataToSend; // Implement a function to encode your data
+      console.debug(`Encoded data for ESP: ${encodedData}`);
 
       const firstPeripheral = [...peripherals.values()][0];
 
@@ -240,7 +239,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       );
 
       console.log(
-        `Writing data to peripheral ${peripheralId} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
+        `Writing data to peripheral ${firstPeripheral.id} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
       );
       console.debug("Data sent successfully.");
     } catch (error) {
