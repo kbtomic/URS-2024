@@ -215,11 +215,11 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     if (lectureData.id !== -1) {
       //send received data to esp
       const byteArray: number[] = convertLectureDataForESP();
-      sendSessionProfessorData(byteArray);
+      sendSessionDataToESP(byteArray);
     }
   }, [lectureData]);
 
-  const sendSessionProfessorData = async (dataToSend: number[]) => {
+  const sendSessionDataToESP = async (dataToSend: number[]) => {
     try {
       retrieveConnected(); // used so the peripheral state only has connected periblerals
 
@@ -257,22 +257,10 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     // Convert salt to Buffer
     const saltBuffer = Buffer.from(salt, "utf-8");
 
-    // Convert class_id to Buffer
-    const classIdBuffer = Buffer.from(class_id, "utf-8");
-
-    // Concatenate the buffers
-    // const buffer = Buffer.concat([idBuffer, saltBuffer, classIdBuffer]);
-
-    // const professorIdBytes = Buffer.from(lectureData.id, "utf-8");
-    // const subjectIdBytes = Buffer.from(data.subjectId, "utf-8");
-    // const startTimeBytes = Buffer.from(data.startTime, "utf-8");
-    // const endTimeBytes = Buffer.from(data.endTime, "utf-8");
-
-    // Concatenate all byte arrays
+    //concatenate all bytes
     const byteArray = [
       ...Array.from(lectureIdBuffer),
       ...Array.from(saltBuffer),
-      ...Array.from(classIdBuffer),
     ];
 
     return byteArray;
