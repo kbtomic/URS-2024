@@ -9,13 +9,6 @@ export default function Login({navigation}) {
   const [password, setPassword] = useState('');
 
   const {login} = useContext(AuthContext);
-  useEffect(() => {
-    console.debug(`Email is: ${email}`);
-  }, [email]);
-
-  useEffect(() => {
-    console.debug(`Password is: ${password}`);
-  }, [password]);
 
   return (
     <View style={styles.container}>
