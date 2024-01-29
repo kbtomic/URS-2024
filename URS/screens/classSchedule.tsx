@@ -1,5 +1,7 @@
 import React, {useState, useContext, useEffect} from "react";
 import {AuthContext} from "../context/AuthContext";
+import {Buffer} from "@craftzdog/react-native-buffer";
+
 import {
   View,
   Text,
@@ -212,8 +214,70 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   useEffect(() => {
     if (lectureData.id !== -1) {
       //send received data to esp
+      const byteArray: number[] = convertLectureDataForESP();
     }
   }, [lectureData]);
+
+  const sendSessionProfessorData = async (
+    peripheralId: string,
+    dataToSend: number[],
+  ) => {
+    try {
+      retrieveConnected(); // used so the peripheral state only has connected periblerals
+
+      const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
+      const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
+
+      const encodedData: number[] = dataToSend; // Implement a function to encode your data
+
+      const firstPeripheral = [...peripherals.values()][0];
+
+      await BleManager.writeWithoutResponse(
+        firstPeripheral.id,
+        serviceUUID,
+        characteristicUUID,
+        encodedData,
+      );
+
+      console.log(
+        `Writing data to peripheral ${peripheralId} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
+      );
+      console.debug("Data sent successfully.");
+    } catch (error) {
+      console.error("Error sending data:", error);
+    }
+  };
+
+  const convertLectureDataForESP = (): number[] => {
+    // Convert string values to UTF-8 encoded byte arrays
+    const {id, salt, class_id} = lectureData;
+
+    // Convert id to Buffer
+    const lectureIdBuffer = Buffer.from(id.toString(), "utf-8");
+
+    // Convert salt to Buffer
+    const saltBuffer = Buffer.from(salt, "utf-8");
+
+    // Convert class_id to Buffer
+    const classIdBuffer = Buffer.from(class_id, "utf-8");
+
+    // Concatenate the buffers
+    // const buffer = Buffer.concat([idBuffer, saltBuffer, classIdBuffer]);
+
+    // const professorIdBytes = Buffer.from(lectureData.id, "utf-8");
+    // const subjectIdBytes = Buffer.from(data.subjectId, "utf-8");
+    // const startTimeBytes = Buffer.from(data.startTime, "utf-8");
+    // const endTimeBytes = Buffer.from(data.endTime, "utf-8");
+
+    // Concatenate all byte arrays
+    const byteArray = [
+      ...Array.from(lectureIdBuffer),
+      ...Array.from(saltBuffer),
+      ...Array.from(classIdBuffer),
+    ];
+
+    return byteArray;
+  };
 
   function formatDateTime(date: Date): string {
     const year = date.getFullYear();
@@ -385,7 +449,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           }
           return map;
         });
-
         setClassId("e3617a9f-8bab-4714-8c27-c4e9e9555d10"); //REMOVE THIS LATER
       }
     } catch (error) {
