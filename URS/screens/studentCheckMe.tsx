@@ -38,7 +38,7 @@ const SECONDS_TO_SCAN_FOR = 3;
 const SERVICE_UUIDS: string[] = ['67136e01-58db-f39b-3446-fdde58c0813a'];
 const ALLOW_DUPLICATES = false;
 const CHARACTERISTIC_UUID: string = '4605cd12-57db-4127-b286-f09bacacfb0f';
-const API_URL: string = 'http://162.19.246.36:5000/';
+const API_URL: string = '';
 
 interface SessionData {
   name: string;
