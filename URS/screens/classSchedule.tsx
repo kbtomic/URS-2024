@@ -77,11 +77,8 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   const [subject, setSubject] = useState("");
   const [showDropDown, setShowDropDown] = useState(false);
   const [open, setOpen] = useState(false);
-  const [open2, setOpen2] = useState(false);
   const [date, setDate] = useState(new Date());
-  const [date2, setDate2] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
 
   /*BLE states */
   const [isScanning, setIsScanning] = useState(false);
@@ -122,14 +119,9 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     },
   ];
 
-  const isButtonVisible = subject && startTime && endTime;
+  const isButtonVisible = subject && startTime;
 
   const startScan = () => {
-    if (endTime <= startTime) {
-      Alert.alert("Incorrect input", "End time must be later than start time");
-      return;
-    }
-
     setSessionData({
       name: subject,
       start_date: formatDateTime(date),
@@ -573,34 +565,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 label="Start time"
                 placeholder="Select start time"
                 value={`${startTime.toDateString()} ${startTime.toLocaleTimeString(
-                  [],
-                  {hour: "2-digit", minute: "2-digit"},
-                )}`}
-                editable={false}
-              />
-            </View>
-
-            <View style={{marginTop: 30}}>
-              <Button mode="contained" onPress={() => setOpen2(true)}>
-                Choose lecture end time
-              </Button>
-              <DatePicker
-                modal
-                open={open2}
-                date={date2}
-                onConfirm={date2 => {
-                  setOpen2(false);
-                  setEndTime(date2);
-                }}
-                onCancel={() => {
-                  setOpen2(false);
-                }}
-              />
-
-              <TextInput
-                label="End time"
-                placeholder="Select end time"
-                value={`${endTime.toDateString()} ${endTime.toLocaleTimeString(
                   [],
                   {hour: "2-digit", minute: "2-digit"},
                 )}`}
