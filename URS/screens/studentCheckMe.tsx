@@ -181,8 +181,51 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
       console.debug(
         `[Data for server from student]: Hash-${ESPSessionData.hash}, classId-${ESPSessionData.class_id}, lectureId-${ESPSessionData.lecture_id}`,
       );
+      sendDataToServer();
     }
   }, [ESPSessionData]);
+
+  const sendDataToServer = () => {
+    const requestData = {
+      lecture_id: ESPSessionData?.lecture_id,
+      hash: ESPSessionData?.hash,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-auth-token": userInfo.token.token,
+    };
+
+    const api_url = `${API_URL}/api/v1/attends/attend/${ESPSessionData?.class_id}`;
+
+    // Use Promise for axios
+    return axios
+      .post(api_url, requestData, {headers: headers})
+      .then(response => {
+        console.debug(
+          "Successful send of data to backend, Backend response:",
+          response.data,
+        );
+
+        return response.data; // You can return the data if needed
+      })
+      .then(null, error => {
+        // Handle errors and still access the response
+        console.error("Error sending data to backend:", error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error("Server responded with status:", error.response.status);
+          console.error("Response data:", error.response.data);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("No response received from the server");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error("Error setting up the request:", error.message);
+        }
+        throw error; // Propagate the error if needed
+      });
+  };
 
   const handleUpdateValueForCharacteristic = (
     //Adjust this functions
