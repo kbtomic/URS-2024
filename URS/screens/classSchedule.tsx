@@ -13,12 +13,11 @@ import {
   SERVICE_UUIDS,
   PROFESSOR_CHARADCTERISTIC_UUID,
   STUDENT_CHARADCTERISTIC_UUID,
-  CHARACTERISTIC_UUID,
   ADVERTISING_NAMES,
   API_URL,
 } from "../bleConfig.js";
 
-import {formatDateTime} from "../helpers.ts";
+import {formatDateTime, sleep} from "../helpers.ts";
 
 import {
   View,
@@ -137,7 +136,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           matchMode: BleScanMatchMode.Sticky,
           scanMode: BleScanMode.LowLatency,
           callbackType: BleScanCallbackType.AllMatches,
-          exactAdvertisingName: ["Nordic_LLPM"], //change name to device if needed
+          exactAdvertisingName: ADVERTISING_NAMES, //change name to device if needed
         })
           .then(() => {
             console.debug("[startScan] scan promise returned successfully.");
@@ -182,14 +181,14 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     console.debug(
       `[handleUpdateValueForCharacteristic] received data from '${data.peripheral}' with characteristic='${data.characteristic}' and value='${data.value}'`,
     );
-    if (
-      data.service === SERVICE_UUIDS[0] &&
-      data.characteristic === CHARACTERISTIC_UUID
-    ) {
-      const esp32response: number[] = data.value;
-      const esp32classID = Buffer.from(esp32response).toString("utf-8");
-      setClassId(esp32classID);
-    }
+    // if (
+    //   data.service === SERVICE_UUIDS[0] &&
+    //   data.characteristic === CHARACTERISTIC_UUID
+    // ) {
+    //   const esp32response: number[] = data.value;
+    //   const esp32classID = Buffer.from(esp32response).toString("utf-8");
+    //   setClassId(esp32classID);
+    // }
   };
 
   useEffect(() => {
@@ -210,14 +209,21 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   const sendSessionDataToESP = async (dataToSend: number[]) => {
     try {
       retrieveConnected(); // used so the peripheral state only has connected periblerals
-
       const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
-      const characteristicUUID: string = CHARACTERISTIC_UUID; // Replace with your actual characteristic UUID
+      const characteristicUUID: string = PROFESSOR_CHARADCTERISTIC_UUID; // Replace with your actual characteristic UUID
 
       const encodedData: number[] = dataToSend; // Implement a function to encode your data
       console.debug(`Encoded data for ESP: ${encodedData}`);
 
       const firstPeripheral = [...peripherals.values()][0];
+
+      const peripheralData = await BleManager.retrieveServices(
+        firstPeripheral.id,
+      ); //documentation says to always call before writing
+
+      // console.debug(
+      //   `[SendSessionDataToEsp] Peripheral id where you sending data: ${firstPeripheral.id}`,
+      // ); ID je tocan to je provjereno
 
       await BleManager.writeWithoutResponse(
         firstPeripheral.id,
@@ -245,6 +251,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     // Convert salt to Buffer
     const saltBuffer = Buffer.from(salt, "utf-8");
 
+    console.debug(`Buffer of data: ${saltBuffer}`);
     //concatenate all bytes
     const byteArray = [
       ...Array.from(lectureIdBuffer),
@@ -371,10 +378,34 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           peripheralData,
         );
 
-        const rssi = await BleManager.readRSSI(peripheral.id);
-        console.debug(
-          `[connectPeripheral][${peripheral.id}] retrieved current RSSI value: ${rssi}.`,
-        );
+        //Ako ovi if ne bude radia onda u donjem ifu mozes direktno prominit
+        if (peripheralData.characteristics) {
+          const desiredCharacteristic = peripheralData.characteristics.find(
+            characteristic =>
+              characteristic.characteristic === PROFESSOR_CHARADCTERISTIC_UUID,
+          );
+
+          if (desiredCharacteristic) {
+            // Read the value of the desired characteristic
+            const characteristicValue = await BleManager.read(
+              peripheral.id,
+              desiredCharacteristic.service,
+              desiredCharacteristic.characteristic,
+            );
+
+            console.debug(
+              `[connectPeripheral][${peripheral.id}] Value of characteristic ${desiredCharacteristic.characteristic}:`,
+              characteristicValue,
+            );
+
+            const esp32classID =
+              Buffer.from(characteristicValue).toString("utf-8");
+            console.debug(
+              `Class id after converting from byte arra: ${esp32classID}`,
+            );
+            //setClassId(esp32classID); UNCOMMENT WHEN TESTING WITH ESP, AND DELETE SETID BELOW
+          }
+        }
 
         if (peripheralData.characteristics) {
           for (let characteristic of peripheralData.characteristics) {
@@ -402,14 +433,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
           }
         }
 
-        setPeripherals(map => {
-          let p = map.get(peripheral.id);
-          if (p) {
-            p.rssi = rssi;
-            return new Map(map.set(p.id, p));
-          }
-          return map;
-        });
         setClassId("e3617a9f-8bab-4714-8c27-c4e9e9555d10"); //REMOVE THIS LATER
       }
     } catch (error) {
@@ -419,10 +442,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       );
     }
   };
-
-  function sleep(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
-  }
 
   /*BLE setup iz in use effect */
   useEffect(() => {
@@ -578,7 +597,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                   mode="contained"
                   style={styles.createButton}
                   onPress={startScan}>
-                  Look for device
+                  Look for nearby classrooms!
                 </Button>
                 <FlatList
                   data={Array.from(peripherals.values())}
