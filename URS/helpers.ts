@@ -11,3 +11,7 @@ export function formatDateTime(date: Date): string {
 
   return formattedDate;
 }
+
+export function sleep(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms));
+}

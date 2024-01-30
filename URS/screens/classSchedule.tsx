@@ -18,7 +18,7 @@ import {
   API_URL,
 } from "../bleConfig.js";
 
-import {formatDateTime} from "../helpers.ts";
+import {formatDateTime, sleep} from "../helpers.ts";
 
 import {
   View,
@@ -419,10 +419,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       );
     }
   };
-
-  function sleep(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
-  }
 
   /*BLE setup iz in use effect */
   useEffect(() => {
