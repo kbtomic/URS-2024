@@ -1,6 +1,11 @@
 import React, {useState, useContext, useEffect} from "react";
 import {AuthContext} from "../context/AuthContext";
 import {Buffer} from "@craftzdog/react-native-buffer";
+import DatePicker from "react-native-date-picker";
+import DropDown from "react-native-paper-dropdown";
+import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
+import {PaperProvider, TextInput, Button} from "react-native-paper";
+import axios from "axios";
 
 import {
   SECONDS_TO_SCAN_FOR,
@@ -12,6 +17,8 @@ import {
   ADVERTISING_NAMES,
   API_URL,
 } from "../bleConfig.js";
+
+import {formatDateTime} from "../helpers.ts";
 
 import {
   View,
@@ -26,10 +33,6 @@ import {
   Platform,
   PermissionsAndroid,
 } from "react-native";
-import DatePicker from "react-native-date-picker";
-import DropDown from "react-native-paper-dropdown";
-import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
-import {PaperProvider, TextInput, Button} from "react-native-paper";
 
 import BleManager, {
   BleDisconnectPeripheralEvent,
@@ -39,8 +42,6 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
-import axios from "axios";
-import {tokens} from "react-native-paper/lib/typescript/styles/themes/v3/tokens";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -73,6 +74,16 @@ interface LectureData {
 const ScheduleScreen = ({navigation}: {navigation: any}) => {
   const {userInfo, logout} = useContext(AuthContext);
 
+  const [subject, setSubject] = useState("");
+  const [showDropDown, setShowDropDown] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [open2, setOpen2] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [date2, setDate2] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+
+  /*BLE states */
   const [isScanning, setIsScanning] = useState(false);
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral["id"], Peripheral>(),
@@ -96,15 +107,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     salt: "",
   });
 
-  const [subject, setSubject] = useState("");
-  const [showDropDown, setShowDropDown] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [open2, setOpen2] = useState(false);
-  const [date, setDate] = useState(new Date());
-  const [date2, setDate2] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-
   const subjectList = [
     {
       label: "ADR",
@@ -123,10 +125,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   const isButtonVisible = subject && startTime && endTime;
 
   const startScan = () => {
-    /*TEMPORARY SETTING OF DATA FOR TESTING */
-
     if (endTime <= startTime) {
-      // Alert user and prevent creating schedule
       Alert.alert("Incorrect input", "End time must be later than start time");
       return;
     }
@@ -203,16 +202,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   useEffect(() => {
     if (classId !== "") {
-      sendStartSessionDataToBackend()
-        .then(data => {
-          // Handle success if needed
-          console.log("Success:", data);
-          console.log("STATe" + lectureData.name);
-        })
-        .catch(error => {
-          // Handle error if needed
-          console.error("Error:", error);
-        });
+      sendStartSessionDataToBackend();
     }
   }, [classId]);
 
@@ -255,7 +245,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   const convertLectureDataForESP = (): number[] => {
     // Convert string values to UTF-8 encoded byte arrays
-    const {id, salt, class_id} = lectureData;
+    const {id, salt} = lectureData;
 
     // Convert id to Buffer
     const lectureIdBuffer = Buffer.from(id.toString(), "utf-8");
@@ -271,20 +261,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
     return byteArray;
   };
-
-  function formatDateTime(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-    const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
-
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
-
-    return formattedDate;
-  }
 
   const sendStartSessionDataToBackend = () => {
     // Example of the data you want to send
@@ -456,6 +432,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
   }
 
+  /*BLE setup iz in use effect */
   useEffect(() => {
     try {
       BleManager.start({showAlert: true})
