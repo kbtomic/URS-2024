@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from "react";
 import {Button} from "react-native-paper";
+import {Buffer} from "@craftzdog/react-native-buffer";
 import {AuthContext} from "../context/AuthContext";
 import axios from "axios";
 
@@ -9,7 +10,6 @@ import {
   SERVICE_UUIDS,
   PROFESSOR_CHARADCTERISTIC_UUID,
   STUDENT_CHARADCTERISTIC_UUID,
-  CHARACTERISTIC_UUID,
   ADVERTISING_NAMES,
   API_URL,
 } from "../bleConfig.js";
@@ -128,7 +128,61 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
 
   const handleConnectPeripheral = (event: any) => {
     console.log(`[handleConnectPeripheral][${event.peripheral}] connected.`);
+
+    const firstPeripheral = event.peripheral;
+    console.debug(`[First peripheral id]: ${firstPeripheral}`);
+
+    console.debug(
+      `Student id being sent after connecting: ${userInfo.user.id}`,
+    );
+
+    const studentIdBuffer = Buffer.from(userInfo.user.id.toString(), "utf-8");
+    const byteArray = [...Array.from(studentIdBuffer)];
+
+    //Perform a write operation
+    BleManager.write(
+      firstPeripheral,
+      SERVICE_UUIDS[0],
+      STUDENT_CHARADCTERISTIC_UUID,
+      byteArray,
+    )
+      .then(responseData => {
+        console.log(
+          `ESP responded with the following data ` +
+            JSON.stringify(responseData, null, 2),
+        );
+        convertDataFromBytes(responseData);
+      })
+      .catch(error => {
+        console.error("Error during write operation:", error);
+      });
   };
+
+  const convertDataFromBytes = (byteArray: any) => {
+    const hashBuffer = Buffer.from(byteArray.slice(0, 64));
+    const hash = hashBuffer.toString("utf-8");
+    // Assuming the next 36 bytes are the classId
+    const classIdBuffer = Buffer.from(byteArray.slice(64, 100));
+    const classId = classIdBuffer.toString("utf-8");
+
+    // Assuming the last two bytes are the lectureId
+    const lectureIdBuffer = Buffer.from(byteArray.slice(100, 102));
+    const lectureId = lectureIdBuffer.toString("utf-8");
+
+    setESPSessionData({
+      hash: hash,
+      class_id: classId,
+      lecture_id: Number(lectureId),
+    }); //after this useEffect is called
+  };
+
+  useEffect(() => {
+    if (ESPSessionData !== undefined) {
+      console.debug(
+        `[Data for server from student]: Hash-${ESPSessionData.hash}, classId-${ESPSessionData.class_id}, lectureId-${ESPSessionData.lecture_id}`,
+      );
+    }
+  }, [ESPSessionData]);
 
   const handleUpdateValueForCharacteristic = (
     //Adjust this functions
@@ -137,13 +191,6 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
     console.debug(
       `[handleUpdateValueForCharacteristic] received data from '${data.peripheral}' with characteristic='${data.characteristic}' and value='${data.value}'`,
     );
-    if (
-      data.service === SERVICE_UUIDS[0] &&
-      data.characteristic === CHARACTERISTIC_UUID
-    ) {
-      const esp32response: number[] = data.value;
-      const esp32classID = Buffer.from(esp32response).toString("utf-8");
-    }
   };
 
   const handleDiscoverPeripheral = (peripheral: Peripheral) => {
@@ -210,7 +257,7 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
           matchMode: BleScanMatchMode.Sticky,
           scanMode: BleScanMode.LowLatency,
           callbackType: BleScanCallbackType.AllMatches,
-          exactAdvertisingName: ["Nordic_LLPM"], //change name to device if needed
+          exactAdvertisingName: ADVERTISING_NAMES, //change name to device if needed
         })
           .then(() => {
             console.debug("[startScan] scan promise returned successfully.");
@@ -259,11 +306,6 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
           peripheralData,
         );
 
-        const rssi = await BleManager.readRSSI(peripheral.id);
-        console.debug(
-          `[connectPeripheral][${peripheral.id}] retrieved current RSSI value: ${rssi}.`,
-        );
-
         if (peripheralData.characteristics) {
           for (let characteristic of peripheralData.characteristics) {
             if (characteristic.descriptors) {
@@ -289,15 +331,6 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
             }
           }
         }
-
-        setPeripherals(map => {
-          let p = map.get(peripheral.id);
-          if (p) {
-            p.rssi = rssi;
-            return new Map(map.set(p.id, p));
-          }
-          return map;
-        });
       }
     } catch (error) {
       console.error(
@@ -307,6 +340,32 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
     }
   };
 
+  const retrieveConnected = async () => {
+    try {
+      const connectedPeripherals = await BleManager.getConnectedPeripherals();
+      if (connectedPeripherals.length === 0) {
+        console.warn("[retrieveConnected] No connected peripherals found.");
+        return;
+      }
+
+      console.debug(
+        "[retrieveConnected] connectedPeripherals",
+        connectedPeripherals,
+      );
+
+      // Create a new Map instance with connected peripherals
+      const updatedPeripheralsMap = new Map(
+        connectedPeripherals.map(peripheral => [peripheral.id, peripheral]),
+      );
+
+      setPeripherals(updatedPeripheralsMap);
+    } catch (error) {
+      console.error(
+        "[retrieveConnected] unable to retrieve connected peripherals.",
+        error,
+      );
+    }
+  };
   const renderItem = ({item}: {item: Peripheral}) => {
     const backgroundColor = item.connected ? "#069400" : "#fffff";
     return (

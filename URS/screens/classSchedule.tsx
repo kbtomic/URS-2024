@@ -216,6 +216,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       console.debug(`Encoded data for ESP: ${encodedData}`);
 
       const firstPeripheral = [...peripherals.values()][0];
+
       const peripheralData = await BleManager.retrieveServices(
         firstPeripheral.id,
       ); //documentation says to always call before writing
