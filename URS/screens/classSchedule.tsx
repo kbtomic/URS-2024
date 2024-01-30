@@ -3,6 +3,17 @@ import {AuthContext} from "../context/AuthContext";
 import {Buffer} from "@craftzdog/react-native-buffer";
 
 import {
+  SECONDS_TO_SCAN_FOR,
+  ALLOW_DUPLICATES,
+  SERVICE_UUIDS,
+  PROFESSOR_CHARADCTERISTIC_UUID,
+  STUDENT_CHARADCTERISTIC_UUID,
+  CHARACTERISTIC_UUID,
+  ADVERTISING_NAMES,
+  API_URL,
+} from "../bleConfig.js";
+
+import {
   View,
   Text,
   StyleSheet,
@@ -41,12 +52,6 @@ declare module "react-native-ble-manager" {
     connecting?: boolean;
   }
 }
-
-const SECONDS_TO_SCAN_FOR = 3;
-const SERVICE_UUIDS: string[] = ["67136e01-58db-f39b-3446-fdde58c0813a"];
-const ALLOW_DUPLICATES = false;
-const CHARACTERISTIC_UUID: string = "4605cd12-57db-4127-b286-f09bacacfb0f";
-const API_URL: string = "http://162.19.246.36:5000";
 
 interface SessionData {
   name: string;
@@ -215,6 +220,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     if (lectureData.id !== -1) {
       //send received data to esp
       const byteArray: number[] = convertLectureDataForESP();
+      console.log(`Encoded data for ESP:` + JSON.stringify(byteArray, null, 2));
       sendSessionDataToESP(byteArray);
     }
   }, [lectureData]);
