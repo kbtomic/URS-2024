@@ -2,6 +2,7 @@ import React, {createContext, useState} from "react";
 
 import axios from "axios";
 import {API_KEY} from "@env";
+const API_URL = "http://162.19.246.36:5000";
 
 export const AuthContext = createContext();
 
@@ -12,7 +13,7 @@ export const AuthProvider = ({children}) => {
 
   const login = (email, password, navigation) => {
     axios
-      .post(API_KEY + "/api/v1/users/login", {
+      .post(API_URL + "/api/v1/users/login", {
         email: email,
         password: password,
       })

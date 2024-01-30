@@ -1,6 +1,24 @@
 import React, {useState, useContext, useEffect} from "react";
 import {AuthContext} from "../context/AuthContext";
 import {Buffer} from "@craftzdog/react-native-buffer";
+import DatePicker from "react-native-date-picker";
+import DropDown from "react-native-paper-dropdown";
+import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
+import {PaperProvider, TextInput, Button} from "react-native-paper";
+import axios from "axios";
+
+import {
+  SECONDS_TO_SCAN_FOR,
+  ALLOW_DUPLICATES,
+  SERVICE_UUIDS,
+  PROFESSOR_CHARADCTERISTIC_UUID,
+  STUDENT_CHARADCTERISTIC_UUID,
+  CHARACTERISTIC_UUID,
+  ADVERTISING_NAMES,
+  API_URL,
+} from "../bleConfig.js";
+
+import {formatDateTime} from "../helpers.ts";
 
 import {
   View,
@@ -15,10 +33,6 @@ import {
   Platform,
   PermissionsAndroid,
 } from "react-native";
-import DatePicker from "react-native-date-picker";
-import DropDown from "react-native-paper-dropdown";
-import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
-import {PaperProvider, TextInput, Button} from "react-native-paper";
 
 import BleManager, {
   BleDisconnectPeripheralEvent,
@@ -28,8 +42,6 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
-import axios from "axios";
-import {tokens} from "react-native-paper/lib/typescript/styles/themes/v3/tokens";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -41,12 +53,6 @@ declare module "react-native-ble-manager" {
     connecting?: boolean;
   }
 }
-
-const SECONDS_TO_SCAN_FOR = 3;
-const SERVICE_UUIDS: string[] = ["67136e01-58db-f39b-3446-fdde58c0813a"];
-const ALLOW_DUPLICATES = false;
-const CHARACTERISTIC_UUID: string = "4605cd12-57db-4127-b286-f09bacacfb0f";
-const API_URL: string = "http://162.19.246.36:5000";
 
 interface SessionData {
   name: string;
@@ -68,6 +74,13 @@ interface LectureData {
 const ScheduleScreen = ({navigation}: {navigation: any}) => {
   const {userInfo, logout} = useContext(AuthContext);
 
+  const [subject, setSubject] = useState("");
+  const [showDropDown, setShowDropDown] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+
+  /*BLE states */
   const [isScanning, setIsScanning] = useState(false);
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral["id"], Peripheral>(),
@@ -91,15 +104,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     salt: "",
   });
 
-  const [subject, setSubject] = useState("");
-  const [showDropDown, setShowDropDown] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [open2, setOpen2] = useState(false);
-  const [date, setDate] = useState(new Date());
-  const [date2, setDate2] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-
   const subjectList = [
     {
       label: "ADR",
@@ -115,17 +119,9 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     },
   ];
 
-  const isButtonVisible = subject && startTime && endTime;
+  const isButtonVisible = subject && startTime;
 
   const startScan = () => {
-    /*TEMPORARY SETTING OF DATA FOR TESTING */
-
-    if (endTime <= startTime) {
-      // Alert user and prevent creating schedule
-      Alert.alert("Incorrect input", "End time must be later than start time");
-      return;
-    }
-
     setSessionData({
       name: subject,
       start_date: formatDateTime(date),
@@ -198,16 +194,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   useEffect(() => {
     if (classId !== "") {
-      sendStartSessionDataToBackend()
-        .then(data => {
-          // Handle success if needed
-          console.log("Success:", data);
-          console.log("STATe" + lectureData.name);
-        })
-        .catch(error => {
-          // Handle error if needed
-          console.error("Error:", error);
-        });
+      sendStartSessionDataToBackend();
     }
   }, [classId]);
 
@@ -215,6 +202,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     if (lectureData.id !== -1) {
       //send received data to esp
       const byteArray: number[] = convertLectureDataForESP();
+      console.log(`Encoded data for ESP:` + JSON.stringify(byteArray, null, 2));
       sendSessionDataToESP(byteArray);
     }
   }, [lectureData]);
@@ -249,7 +237,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
   const convertLectureDataForESP = (): number[] => {
     // Convert string values to UTF-8 encoded byte arrays
-    const {id, salt, class_id} = lectureData;
+    const {id, salt} = lectureData;
 
     // Convert id to Buffer
     const lectureIdBuffer = Buffer.from(id.toString(), "utf-8");
@@ -265,20 +253,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 
     return byteArray;
   };
-
-  function formatDateTime(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-    const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
-
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z`;
-
-    return formattedDate;
-  }
 
   const sendStartSessionDataToBackend = () => {
     // Example of the data you want to send
@@ -450,6 +424,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
   }
 
+  /*BLE setup iz in use effect */
   useEffect(() => {
     try {
       BleManager.start({showAlert: true})
@@ -590,34 +565,6 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 label="Start time"
                 placeholder="Select start time"
                 value={`${startTime.toDateString()} ${startTime.toLocaleTimeString(
-                  [],
-                  {hour: "2-digit", minute: "2-digit"},
-                )}`}
-                editable={false}
-              />
-            </View>
-
-            <View style={{marginTop: 30}}>
-              <Button mode="contained" onPress={() => setOpen2(true)}>
-                Choose lecture end time
-              </Button>
-              <DatePicker
-                modal
-                open={open2}
-                date={date2}
-                onConfirm={date2 => {
-                  setOpen2(false);
-                  setEndTime(date2);
-                }}
-                onCancel={() => {
-                  setOpen2(false);
-                }}
-              />
-
-              <TextInput
-                label="End time"
-                placeholder="Select end time"
-                value={`${endTime.toDateString()} ${endTime.toLocaleTimeString(
                   [],
                   {hour: "2-digit", minute: "2-digit"},
                 )}`}
