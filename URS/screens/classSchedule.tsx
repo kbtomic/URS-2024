@@ -4,7 +4,12 @@ import {Buffer} from "@craftzdog/react-native-buffer";
 import DatePicker from "react-native-date-picker";
 import DropDown from "react-native-paper-dropdown";
 import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
-import {PaperProvider, TextInput, Button} from "react-native-paper";
+import {
+  PaperProvider,
+  TextInput,
+  Button,
+  DefaultTheme,
+} from "react-native-paper";
 import axios from "axios";
 
 import {
@@ -41,6 +46,7 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
+import {white} from "react-native-paper/lib/typescript/styles/themes/v2/colors";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -535,21 +541,37 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
         onPress={() => connectPeripheral(item)}>
         <View style={[styles.row, {backgroundColor}]}>
           <Text style={styles.peripheralName}>
-            {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
-            {item.name} - {item?.advertising?.localName}
+            {/* {item.name} - {item?.advertising?.localName} */}
+            {item.name}
             {item.connecting && " - Starting lecture..."}
           </Text>
-          <Text style={styles.peripheralId}>{item.id}</Text>
+          {/* <Text style={styles.peripheralId}>{item.id}</Text> */}
         </View>
       </TouchableHighlight>
     );
+  };
+
+  const theme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: "white", // Change this to your desired color
+    },
+  };
+
+  const theme2 = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: "black", // Change this to your desired color
+    },
   };
 
   return (
     <SafeAreaProvider>
       <PaperProvider>
         <ScrollView style={styles.container}>
-          <View>
+          <View style={styles.mainContainer}>
             <Text style={styles.header}>Hello, {userInfo.user.name}</Text>
 
             <DropDown
@@ -561,10 +583,15 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
               value={subject}
               setValue={setSubject}
               list={subjectList}
+              theme={theme}
             />
 
             <View style={{marginTop: 30}}>
-              <Button mode="contained" onPress={() => setOpen(true)}>
+              <Button
+                style={styles.chooseLecture}
+                mode="contained"
+                labelStyle={styles.buttonText}
+                onPress={() => setOpen(true)}>
                 Choose lecture start time
               </Button>
               <DatePicker
@@ -581,6 +608,8 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
               />
 
               <TextInput
+                style={styles.textInput}
+                theme={theme2}
                 label="Start time"
                 placeholder="Select start time"
                 value={`${startTime.toDateString()} ${startTime.toLocaleTimeString(
@@ -596,8 +625,9 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 <Button
                   mode="contained"
                   style={styles.createButton}
-                  onPress={startScan}>
-                  Look for nearby classrooms!
+                  onPress={startScan}
+                  labelStyle={styles.buttonText}>
+                  Scan for nearby classrooms!
                 </Button>
                 <FlatList
                   data={Array.from(peripherals.values())}
@@ -607,17 +637,16 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 />
               </View>
             ) : null}
-
-            <Button
-              style={styles.logoutButton}
-              labelStyle={styles.buttonText}
-              mode="contained"
-              onPress={() => {
-                logout(navigation);
-              }}>
-              LOGOUT
-            </Button>
           </View>
+          <Button
+            style={styles.logoutButton}
+            labelStyle={styles.buttonText}
+            mode="contained"
+            onPress={() => {
+              logout(navigation);
+            }}>
+            LOGOUT
+          </Button>
         </ScrollView>
       </PaperProvider>
     </SafeAreaProvider>
@@ -625,30 +654,49 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    paddingTop: 50,
+  },
+  textInput: {
+    backgroundColor: "white",
+  },
+  chooseLecture: {
+    borderRadius: 10,
+    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: "white",
   },
   header: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "bold",
     marginBottom: 30,
   },
   createButton: {
     marginTop: 30,
     marginBottom: 30,
-    backgroundColor: "green",
+    paddingVertical: 5,
+    backgroundColor: "#7ac3fa",
+    borderRadius: 15,
   },
+
   logoutButton: {
-    marginTop: 30,
-    marginBottom: 30,
-    backgroundColor: "red",
+    width: "100%",
+    marginTop: 100,
+
+    backgroundColor: "#ff5e5e",
+    borderRadius: 15,
   },
-  buttonText: {},
+  buttonText: {
+    fontSize: 16,
+    color: "white",
+  },
 
   peripheralName: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: "center",
     padding: 10,
   },

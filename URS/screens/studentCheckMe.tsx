@@ -434,7 +434,7 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
         labelStyle={styles.buttonText}
         onPress={startScan}
         mode="contained">
-        Look for nearby classrooms!
+        Scan for nearby classrooms!
       </Button>
       <FlatList
         data={Array.from(peripherals.values())}
