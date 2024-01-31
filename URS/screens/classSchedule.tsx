@@ -108,6 +108,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     updatedAt: "",
     salt: "",
   });
+  const [isLectureStartd, setIsLectureStarted] = useState(false);
 
   const subjectList = [
     {
@@ -209,6 +210,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       const byteArray: number[] = convertLectureDataForESP();
       console.log(`Encoded data for ESP:` + JSON.stringify(byteArray, null, 2));
       sendSessionDataToESP(byteArray);
+      setIsLectureStarted(true);
     }
   }, [lectureData]);
 
@@ -532,6 +534,51 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       });
     }
   };
+  const endLecture = () => {
+    const currentDateTime = new Date();
+    const formattedDateTime = currentDateTime.toISOString();
+
+    const requestData = {
+      id: lectureData.id,
+      end_date: formattedDateTime,
+      class_id: lectureData.class_id,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-auth-token": userInfo.token.token,
+    };
+
+    const api_url = `${API_URL}/api/v1/lectures/close`;
+
+    // Use Promise for axios
+    return axios
+      .put(api_url, requestData, {headers: headers})
+      .then(response => {
+        console.debug(
+          "Successful send of data to backend, Backend response:",
+          response.data,
+        );
+
+        return response.data; // You can return the data if needed
+      })
+      .then(null, error => {
+        // Handle errors and still access the response
+        console.error("Error sending data to backend:", error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error("Server responded with status:", error.response.status);
+          console.error("Response data:", error.response.data);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("No response received from the server");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error("Error setting up the request:", error.message);
+        }
+        throw error; // Propagate the error if needed
+      });
+  };
 
   const renderItem = ({item}: {item: Peripheral}) => {
     const borderColor = item.connected ? "#7ac3fa" : "#fffff";
@@ -642,6 +689,16 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
               </View>
             ) : null}
           </View>
+          {isLectureStartd && (
+            <Button
+              style={styles.endLesson}
+              labelStyle={styles.buttonText}
+              mode="contained"
+              onPress={endLecture}>
+              End current lesson
+            </Button>
+          )}
+
           <Button
             style={styles.logoutButton}
             labelStyle={styles.buttonText}
@@ -693,11 +750,19 @@ const styles = StyleSheet.create({
 
   logoutButton: {
     width: "100%",
-    marginTop: 100,
+    marginTop: 20,
 
     backgroundColor: "#ff5e5e",
     borderRadius: 15,
   },
+  endLesson: {
+    width: "100%",
+    backgroundColor: "#1486db",
+    borderRadius: 15,
+    paddingVertical: 5,
+    marginTop: 350,
+  },
+
   buttonText: {
     fontSize: 16,
     color: "white",
