@@ -7,3 +7,4 @@ export const STUDENT_CHARADCTERISTIC_UUID =
   "01DAC339-76FE-4963-A907-B0D46741C7A4";
 export const ADVERTISING_NAMES = ["Nordic_LLPM", "A100"];
 export const API_URL = "http://162.19.246.36:5000";
+const CLASS_ID = "e3617a9f-8bab-4714-8c27-c4e9e9555d10";

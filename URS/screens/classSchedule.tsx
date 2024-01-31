@@ -4,7 +4,12 @@ import {Buffer} from "@craftzdog/react-native-buffer";
 import DatePicker from "react-native-date-picker";
 import DropDown from "react-native-paper-dropdown";
 import {SafeAreaProvider, SafeAreaView} from "react-native-safe-area-context";
-import {PaperProvider, TextInput, Button} from "react-native-paper";
+import {
+  PaperProvider,
+  TextInput,
+  Button,
+  DefaultTheme,
+} from "react-native-paper";
 import axios from "axios";
 
 import {
@@ -41,6 +46,7 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
+import {white} from "react-native-paper/lib/typescript/styles/themes/v2/colors";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -102,6 +108,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     updatedAt: "",
     salt: "",
   });
+  const [isLectureStartd, setIsLectureStarted] = useState(false);
 
   const subjectList = [
     {
@@ -203,6 +210,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       const byteArray: number[] = convertLectureDataForESP();
       console.log(`Encoded data for ESP:` + JSON.stringify(byteArray, null, 2));
       sendSessionDataToESP(byteArray);
+      setIsLectureStarted(true);
     }
   }, [lectureData]);
 
@@ -526,30 +534,95 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       });
     }
   };
+  const endLecture = () => {
+    const currentDateTime = new Date();
+    const formattedDateTime = currentDateTime.toISOString();
+
+    const requestData = {
+      id: lectureData.id,
+      end_date: formattedDateTime,
+      class_id: lectureData.class_id,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-auth-token": userInfo.token.token,
+    };
+
+    const api_url = `${API_URL}/api/v1/lectures/close`;
+
+    // Use Promise for axios
+    return axios
+      .put(api_url, requestData, {headers: headers})
+      .then(response => {
+        console.debug(
+          "Successful send of data to backend, Backend response:",
+          response.data,
+        );
+
+        return response.data; // You can return the data if needed
+      })
+      .then(null, error => {
+        // Handle errors and still access the response
+        console.error("Error sending data to backend:", error);
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          console.error("Server responded with status:", error.response.status);
+          console.error("Response data:", error.response.data);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.error("No response received from the server");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.error("Error setting up the request:", error.message);
+        }
+        throw error; // Propagate the error if needed
+      });
+  };
 
   const renderItem = ({item}: {item: Peripheral}) => {
-    const backgroundColor = item.connected ? "#069400" : "#fffff";
+    const borderColor = item.connected ? "#7ac3fa" : "#fffff";
     return (
       <TouchableHighlight
-        underlayColor="#0082FC"
+        style={styles.highlight}
+        underlayColor="#b8dffc"
         onPress={() => connectPeripheral(item)}>
-        <View style={[styles.row, {backgroundColor}]}>
+        <View style={[styles.row, {borderColor}]}>
           <Text style={styles.peripheralName}>
-            {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
-            {item.name} - {item?.advertising?.localName}
-            {item.connecting && " - Starting lecture..."}
+            {/* {item.name} - {item?.advertising?.localName} */}
+            {item.name}
           </Text>
-          <Text style={styles.peripheralId}>{item.id}</Text>
+          <Text style={styles.peripheralName}>
+            {!item.connected && !item.connecting && "Tap to start lecture"}
+            {item.connecting && "Starting lecture..."}
+            {item.connected && "Lecture started"}
+          </Text>
         </View>
       </TouchableHighlight>
     );
+  };
+
+  const theme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: "white", // Change this to your desired color
+    },
+  };
+
+  const theme2 = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: "black", // Change this to your desired color
+    },
   };
 
   return (
     <SafeAreaProvider>
       <PaperProvider>
         <ScrollView style={styles.container}>
-          <View>
+          <View style={styles.mainContainer}>
             <Text style={styles.header}>Hello, {userInfo.user.name}</Text>
 
             <DropDown
@@ -561,10 +634,15 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
               value={subject}
               setValue={setSubject}
               list={subjectList}
+              theme={theme}
             />
 
             <View style={{marginTop: 30}}>
-              <Button mode="contained" onPress={() => setOpen(true)}>
+              <Button
+                style={styles.chooseLecture}
+                mode="contained"
+                labelStyle={styles.buttonText}
+                onPress={() => setOpen(true)}>
                 Choose lecture start time
               </Button>
               <DatePicker
@@ -581,6 +659,8 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
               />
 
               <TextInput
+                style={styles.textInput}
+                theme={theme2}
                 label="Start time"
                 placeholder="Select start time"
                 value={`${startTime.toDateString()} ${startTime.toLocaleTimeString(
@@ -592,12 +672,13 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
             </View>
 
             {isButtonVisible ? (
-              <View>
+              <View style={styles.bleContainer}>
                 <Button
                   mode="contained"
                   style={styles.createButton}
-                  onPress={startScan}>
-                  Look for nearby classrooms!
+                  onPress={startScan}
+                  labelStyle={styles.buttonText}>
+                  Scan for nearby classrooms!
                 </Button>
                 <FlatList
                   data={Array.from(peripherals.values())}
@@ -607,17 +688,26 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
                 />
               </View>
             ) : null}
-
+          </View>
+          {isLectureStartd && (
             <Button
-              style={styles.logoutButton}
+              style={styles.endLesson}
               labelStyle={styles.buttonText}
               mode="contained"
-              onPress={() => {
-                logout(navigation);
-              }}>
-              LOGOUT
+              onPress={endLecture}>
+              End current lesson
             </Button>
-          </View>
+          )}
+
+          <Button
+            style={styles.logoutButton}
+            labelStyle={styles.buttonText}
+            mode="contained"
+            onPress={() => {
+              logout(navigation);
+            }}>
+            LOGOUT
+          </Button>
         </ScrollView>
       </PaperProvider>
     </SafeAreaProvider>
@@ -625,30 +715,61 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 };
 
 const styles = StyleSheet.create({
+  bleContainer: {
+    minHeight: 310,
+  },
+  mainContainer: {
+    paddingTop: 50,
+  },
+  textInput: {
+    backgroundColor: "white",
+  },
+  chooseLecture: {
+    borderRadius: 10,
+    borderBottomRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    color: "#6854a4",
+  },
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: "white",
   },
   header: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: "bold",
     marginBottom: 30,
   },
   createButton: {
     marginTop: 30,
     marginBottom: 30,
-    backgroundColor: "green",
+    paddingVertical: 5,
+    backgroundColor: "#7ac3fa",
+    borderRadius: 15,
   },
+
   logoutButton: {
-    marginTop: 30,
-    marginBottom: 30,
-    backgroundColor: "red",
+    width: "100%",
+    marginTop: 20,
+
+    backgroundColor: "#ff5e5e",
+    borderRadius: 15,
   },
-  buttonText: {},
+  endLesson: {
+    width: "100%",
+    backgroundColor: "#1486db",
+    borderRadius: 15,
+    paddingVertical: 5,
+    marginTop: 350,
+  },
+
+  buttonText: {
+    fontSize: 16,
+    color: "white",
+  },
 
   peripheralName: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: "center",
     padding: 10,
   },
@@ -664,9 +785,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   row: {
-    marginLeft: 10,
-    marginRight: 10,
-    borderRadius: 20,
+    borderWidth: 3,
+    marginLeft: 30,
+    marginRight: 30,
+    borderRadius: 10,
+  },
+  highlight: {
+    marginLeft: 40,
+    marginRight: 40,
+    borderRadius: 10,
   },
   noPeripherals: {
     margin: 10,

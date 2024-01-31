@@ -1,5 +1,5 @@
 import React, {useContext, useEffect, useState} from "react";
-import {Button} from "react-native-paper";
+import {Button, PaperProvider} from "react-native-paper";
 import {Buffer} from "@craftzdog/react-native-buffer";
 import {AuthContext} from "../context/AuthContext";
 import axios from "axios";
@@ -37,6 +37,7 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
+import {SafeAreaProvider} from "react-native-safe-area-context";
 
 const BleManagerModule = NativeModules.BleManager;
 const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
@@ -410,82 +411,92 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
     }
   };
   const renderItem = ({item}: {item: Peripheral}) => {
-    const backgroundColor = item.connected ? "#069400" : "#fffff";
+    const borderColor = item.connected ? "#7ac3fa" : "#fffff";
     return (
       <TouchableHighlight
-        underlayColor="#0082FC"
+        style={styles.highlight}
+        underlayColor="#b8dffc"
         onPress={() => connectPeripheral(item)}>
-        <View style={[styles.row, {backgroundColor}]}>
+        <View style={[styles.row, {borderColor}]}>
           <Text style={styles.peripheralName}>
-            {/* completeLocalName (item.name) & shortAdvertisingName (advertising.localName) may not always be the same */}
-            {item.name} - {item?.advertising?.localName}
-            {item.connecting && " - Starting lecture..."}
+            {/* {item.name} - {item?.advertising?.localName} */}
+            {item.name}
           </Text>
-          <Text style={styles.peripheralId}>{item.id}</Text>
+          <Text style={styles.peripheralName}>
+            {!item.connected && !item.connecting && "Tap to join lecture"}
+            {item.connecting && "Joining lecture..."}
+            {item.connected && "Lecture joined"}
+          </Text>
         </View>
       </TouchableHighlight>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <Button
-        style={styles.button}
-        labelStyle={styles.buttonText}
-        onPress={startScan}
-        mode="contained">
-        Look for nearby classrooms!
-      </Button>
-      <FlatList
-        data={Array.from(peripherals.values())}
-        contentContainerStyle={{rowGap: 12}}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-      />
-      <Button
-        style={styles.logoutButton}
-        labelStyle={styles.buttonText}
-        mode="contained"
-        onPress={() => {
-          logout(navigation);
-        }}>
-        LOGOUT
-      </Button>
-    </View>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <View style={styles.container}>
+          <Button
+            style={styles.button}
+            labelStyle={styles.buttonText}
+            onPress={startScan}
+            mode="contained">
+            Scan for nearby classrooms!
+          </Button>
+          <FlatList
+            data={Array.from(peripherals.values())}
+            contentContainerStyle={{rowGap: 12}}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+          />
+          <Button
+            style={styles.logoutButton}
+            labelStyle={styles.buttonText}
+            mode="contained"
+            onPress={() => {
+              logout(navigation);
+            }}>
+            LOGOUT
+          </Button>
+        </View>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#CBF8FA",
+    backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
   },
   button: {
-    width: 200,
+    width: "90%",
     height: 100,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 15,
     margin: 10,
+    marginTop: 200,
+    backgroundColor: "#7ac3fa",
   },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 20,
   },
   logoutButton: {
-    width: 200,
+    width: "90%",
     height: 50,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 15,
-    margin: 10,
-    backgroundColor: "red",
+    margin: 30,
+    backgroundColor: "#ff5e5e",
   },
 
   peripheralName: {
-    fontSize: 16,
+    fontSize: 18,
     textAlign: "center",
     padding: 10,
   },
@@ -501,12 +512,14 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   row: {
-    marginLeft: 10,
-    marginRight: 10,
-    borderRadius: 20,
+    borderWidth: 3,
+    marginLeft: 30,
+    marginRight: 30,
+    borderRadius: 10,
   },
-  noPeripherals: {
-    margin: 10,
-    textAlign: "center",
+  highlight: {
+    marginLeft: 40,
+    marginRight: 40,
+    borderRadius: 10,
   },
 });
