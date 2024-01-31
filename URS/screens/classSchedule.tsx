@@ -534,18 +534,22 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   };
 
   const renderItem = ({item}: {item: Peripheral}) => {
-    const backgroundColor = item.connected ? "#069400" : "#fffff";
+    const borderColor = item.connected ? "#7ac3fa" : "#fffff";
     return (
       <TouchableHighlight
-        underlayColor="#0082FC"
+        style={styles.highlight}
+        underlayColor="#b8dffc"
         onPress={() => connectPeripheral(item)}>
-        <View style={[styles.row, {backgroundColor}]}>
+        <View style={[styles.row, {borderColor}]}>
           <Text style={styles.peripheralName}>
             {/* {item.name} - {item?.advertising?.localName} */}
             {item.name}
-            {item.connecting && " - Starting lecture..."}
           </Text>
-          {/* <Text style={styles.peripheralId}>{item.id}</Text> */}
+          <Text style={styles.peripheralName}>
+            {!item.connected && !item.connecting && "Tap to start lecture"}
+            {item.connecting && "Starting lecture..."}
+            {item.connected && "Lecture started"}
+          </Text>
         </View>
       </TouchableHighlight>
     );
@@ -621,7 +625,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
             </View>
 
             {isButtonVisible ? (
-              <View>
+              <View style={styles.bleContainer}>
                 <Button
                   mode="contained"
                   style={styles.createButton}
@@ -654,6 +658,9 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
 };
 
 const styles = StyleSheet.create({
+  bleContainer: {
+    minHeight: 310,
+  },
   mainContainer: {
     paddingTop: 50,
   },
@@ -664,6 +671,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderBottomRightRadius: 0,
     borderBottomLeftRadius: 0,
+    color: "#6854a4",
   },
   container: {
     flex: 1,
@@ -712,9 +720,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   row: {
-    marginLeft: 10,
-    marginRight: 10,
-    borderRadius: 20,
+    borderWidth: 3,
+    marginLeft: 30,
+    marginRight: 30,
+    borderRadius: 10,
+  },
+  highlight: {
+    marginLeft: 40,
+    marginRight: 40,
+    borderRadius: 10,
   },
   noPeripherals: {
     margin: 10,
