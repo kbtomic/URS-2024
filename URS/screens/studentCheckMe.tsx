@@ -10,8 +10,10 @@ import {
   SERVICE_UUIDS,
   PROFESSOR_CHARADCTERISTIC_UUID,
   STUDENT_CHARADCTERISTIC_UUID,
+  SERVICE_ESP,
   ADVERTISING_NAMES,
   API_URL,
+  CLASS_ID,
 } from "../bleConfig.js";
 import {formatDateTime, sleep} from "../helpers.ts";
 
@@ -65,6 +67,7 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
     new Map<Peripheral["id"], Peripheral>(),
   );
   const [ESPSessionData, setESPSessionData] = useState<ESPSessionData>(); //default undefined
+  const [conn, setConn] = useState(false);
 
   /*BLE setup iz in use effect */
   useEffect(() => {
@@ -127,25 +130,25 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
     });
   };
 
-  const handleConnectPeripheral = (event: any) => {
-    console.log(`[handleConnectPeripheral][${event.peripheral}] connected.`);
-
-    const firstPeripheral = event.peripheral;
-    console.debug(`[First peripheral id]: ${firstPeripheral}`);
-
+  useEffect(() => {
+    if (!conn) return;
     console.debug(
       `Student id being sent after connecting: ${userInfo.user.id}`,
     );
+    const firstPeripheral = [...peripherals.values()][0];
 
     const studentIdBuffer = Buffer.from(userInfo.user.id.toString(), "utf-8");
-    const byteArray = [...Array.from(studentIdBuffer)];
+    const byteArray = Array.from(Uint8Array.from(studentIdBuffer));
+    const serviceUUID = SERVICE_ESP; // Replace with your actual service UUID
+    const characteristicUUID = STUDENT_CHARADCTERISTIC_UUID;
 
     //Perform a write operation
     BleManager.write(
-      firstPeripheral,
-      SERVICE_UUIDS[0],
-      STUDENT_CHARADCTERISTIC_UUID,
+      firstPeripheral.id,
+      serviceUUID,
+      characteristicUUID,
       byteArray,
+      128,
     )
       .then(responseData => {
         console.log(
@@ -157,23 +160,59 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
       .catch(error => {
         console.error("Error during write operation:", error);
       });
+  }, [conn]);
+
+  const handleConnectPeripheral = (event: any) => {
+    console.log(`[handleConnectPeripheral][${event.peripheral}] connected.`);
+
+    const firstPeripheral = event.peripheral;
+    console.debug(`[First peripheral id]: ${firstPeripheral}`);
+
+    console.debug(
+      `Student id being sent after connecting: ${userInfo.user.id}`,
+    );
+
+    // const studentIdBuffer = Buffer.from(userInfo.user.id.toString(), "utf-8");
+    // const byteArray = Array.from(Uint8Array.from(studentIdBuffer));
+    // const serviceUUID = SERVICE_ESP; // Replace with your actual service UUID
+    // const characteristicUUID = STUDENT_CHARADCTERISTIC_UUID;
+
+    // //Perform a write operation
+    // BleManager.write(
+    //   firstPeripheral,
+    //   serviceUUID,
+    //   characteristicUUID,
+    //   byteArray,
+    //   128,
+    // )
+    //   .then(responseData => {
+    //     console.log(
+    //       `ESP responded with the following data ` +
+    //         JSON.stringify(responseData, null, 2),
+    //     );
+    //     convertDataFromBytes(responseData);
+    //   })
+    //   .catch(error => {
+    //     console.error("Error during write operation:", error);
+    //   });
   };
 
   const convertDataFromBytes = (byteArray: any) => {
     const hashBuffer = Buffer.from(byteArray.slice(0, 64));
     const hash = hashBuffer.toString("utf-8");
+    console.log(`HASH BUFFER: ${hashBuffer}, HASH: ${hash}`);
     // Assuming the next 36 bytes are the classId
-    const classIdBuffer = Buffer.from(byteArray.slice(64, 100));
-    const classId = classIdBuffer.toString("utf-8");
+    // const classIdBuffer = Buffer.from(byteArray.slice(64, 100));
+    // const classId = classIdBuffer.toString("utf-8");
 
-    // Assuming the last two bytes are the lectureId
-    const lectureIdBuffer = Buffer.from(byteArray.slice(100, 102));
-    const lectureId = lectureIdBuffer.toString("utf-8");
+    // // Assuming the last two bytes are the lectureId
+    // const lectureIdBuffer = Buffer.from(byteArray.slice(100, 102));
+    // const lectureId = lectureIdBuffer.toString("utf-8");
 
     setESPSessionData({
       hash: hash,
-      class_id: classId,
-      lecture_id: Number(lectureId),
+      class_id: CLASS_ID,
+      lecture_id: 73,
     }); //after this useEffect is called
   };
 
@@ -341,7 +380,7 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
         });
 
         // before retrieving services, it is often a good idea to let bonding & connection finish properly
-        await sleep(900);
+        await sleep(3000);
 
         /* Test read current RSSI value, retrieve services first */
         const peripheralData = await BleManager.retrieveServices(peripheral.id);
@@ -416,7 +455,7 @@ export default function StudentCheckMe({navigation}: {navigation: any}) {
       <TouchableHighlight
         style={styles.highlight}
         underlayColor="#b8dffc"
-        onPress={() => connectPeripheral(item)}>
+        onPress={() => connectPeripheral(item).then(() => setConn(true))}>
         <View style={[styles.row, {borderColor}]}>
           <Text style={styles.peripheralName}>
             {/* {item.name} - {item?.advertising?.localName} */}

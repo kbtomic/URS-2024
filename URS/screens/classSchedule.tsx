@@ -16,6 +16,7 @@ import {
   SECONDS_TO_SCAN_FOR,
   ALLOW_DUPLICATES,
   SERVICE_UUIDS,
+  SERVICE_ESP,
   PROFESSOR_CHARADCTERISTIC_UUID,
   STUDENT_CHARADCTERISTIC_UUID,
   ADVERTISING_NAMES,
@@ -207,20 +208,20 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
   useEffect(() => {
     if (lectureData.id !== -1) {
       //send received data to esp
-      const byteArray: number[] = convertLectureDataForESP();
+      const byteArray: Buffer = convertLectureDataForESP();
       console.log(`Encoded data for ESP:` + JSON.stringify(byteArray, null, 2));
       sendSessionDataToESP(byteArray);
       setIsLectureStarted(true);
     }
   }, [lectureData]);
 
-  const sendSessionDataToESP = async (dataToSend: number[]) => {
+  const sendSessionDataToESP = async (dataToSend: Buffer) => {
     try {
       retrieveConnected(); // used so the peripheral state only has connected periblerals
-      const serviceUUID = SERVICE_UUIDS[0]; // Replace with your actual service UUID
+      const serviceUUID = SERVICE_ESP; // Replace with your actual service UUID
       const characteristicUUID: string = PROFESSOR_CHARADCTERISTIC_UUID; // Replace with your actual characteristic UUID
 
-      const encodedData: number[] = dataToSend; // Implement a function to encode your data
+      const encodedData: Buffer = dataToSend; // Implement a function to encode your data
       console.debug(`Encoded data for ESP: ${encodedData}`);
 
       const firstPeripheral = [...peripherals.values()][0];
@@ -233,12 +234,14 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       //   `[SendSessionDataToEsp] Peripheral id where you sending data: ${firstPeripheral.id}`,
       // ); ID je tocan to je provjereno
 
-      await BleManager.writeWithoutResponse(
+      await BleManager.write(
         firstPeripheral.id,
         serviceUUID,
         characteristicUUID,
-        encodedData,
+        Array.from(Uint8Array.from(encodedData)),
+        128,
       );
+      console.log(`ARRAY: ${Array.from(Uint8Array.from(encodedData))}`);
 
       console.log(
         `Writing data to peripheral ${firstPeripheral.id} - Service UUID: ${serviceUUID} - Characteristic UUID: ${characteristicUUID} - Encoded Data: ${encodedData}`,
@@ -249,12 +252,13 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
     }
   };
 
-  const convertLectureDataForESP = (): number[] => {
+  const convertLectureDataForESP = (): Buffer => {
     // Convert string values to UTF-8 encoded byte arrays
-    const {id, salt} = lectureData;
+    const id = lectureData.id;
+    const salt = lectureData.salt;
 
     // Convert id to Buffer
-    const lectureIdBuffer = Buffer.from(id.toString(), "utf-8");
+    const lectureIdBuffer = Buffer.from(id.toString() + salt, "utf-8");
 
     // Convert salt to Buffer
     const saltBuffer = Buffer.from(salt, "utf-8");
@@ -266,7 +270,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
       ...Array.from(saltBuffer),
     ];
 
-    return byteArray;
+    return lectureIdBuffer;
   };
 
   const sendStartSessionDataToBackend = () => {
@@ -377,7 +381,7 @@ const ScheduleScreen = ({navigation}: {navigation: any}) => {
         });
 
         // before retrieving services, it is often a good idea to let bonding & connection finish properly
-        await sleep(900);
+        await sleep(3000);
 
         /* Test read current RSSI value, retrieve services first */
         const peripheralData = await BleManager.retrieveServices(peripheral.id);
